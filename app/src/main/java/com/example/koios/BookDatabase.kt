@@ -7,5 +7,8 @@ import androidx.room.RoomDatabase
     version = 1
 )
 abstract class BookDatabase: RoomDatabase() {
-    abstract  val dao: BookDao
+    companion object{
+        const val NAME ="book_db"
+    }
+    abstract val dao: BookDao
 }

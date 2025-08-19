@@ -57,7 +57,7 @@ class BookViewModel (
                 val image = state.value.image
                 val urlLink = state.value.urllink
 
-                if (title.isBlank() || author.isBlank()){
+                if (title.isBlank()){
                     return
                 }
 
