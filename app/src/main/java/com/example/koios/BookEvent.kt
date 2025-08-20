@@ -12,4 +12,6 @@ sealed interface BookEvent {
     object HideDialog: BookEvent
     data class SortBooks(val sortType: SortType): BookEvent
     data class DeleteBook(val book: Book): BookEvent
+    data class ChangeBook(val changebook: Book): BookEvent
+    data class  OnSearchTextChange(val searchText: String): BookEvent
 }
