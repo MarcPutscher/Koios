@@ -6,7 +6,7 @@ data class BookState (
     val title: String = "",
     val author: String = "",
     val image: String = "",
-    val urllink: String = "",
+    val urlLink: String = "",
     val condition: Int = 0,
     val rating: Int = -1,
     val isAddingBook: Boolean = false,

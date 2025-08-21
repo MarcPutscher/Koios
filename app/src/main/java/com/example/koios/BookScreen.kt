@@ -5,11 +5,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -39,13 +38,14 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,230 +72,62 @@ import com.example.koios.ui.theme.MiddeBlue
 import kotlinx.coroutines.launch
 
 @Composable
-fun BookScreen(
-    state: BookState,
-    onEvent: (BookEvent) -> Unit,
-
-){
+fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit,){
+    //Variable for the scroll to top function
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
+    //main layout
     Scaffold (
         floatingActionButton = {
-            Column {
+            Column (
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ){
+                //if the main list can scroll to the top then show this button
                 if(listState.canScrollBackward)
                     FloatingActionButton(onClick = {
                         coroutineScope.launch {
                             listState.animateScrollToItem(index = 0)}
                     }
                     ) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Add book", Modifier.size(30.dp))
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Add book",
+                            Modifier.size(30.dp))
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
+
+                //the button for adding a new book
                 FloatingActionButton(onClick = {
                     onEvent(BookEvent.ShowDialog)
                 }
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add book", Modifier.size(30.dp))
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add book",
+                        Modifier.size(30.dp))
                 }
             }
         },
         modifier = Modifier.padding(0.dp)
 
     ){ padding->
+        //show the dialog for adding or changing
         if(state.isAddingBook or state.isChangeBook){
             AddBookDialog(state = state, onEvent = onEvent)
         }
+
+        //layout for the taskbar and the main list
         Column (
-            modifier = Modifier.padding(PaddingValues(0.dp,0.dp,0.dp,0.dp))
+            modifier = Modifier
                 .background(color = Darkblue)
                 .fillMaxSize()
+        )
+        {
 
-        ){
-            Spacer(Modifier.height(50.dp))
-            Column(
-                modifier = Modifier
-                    .padding(10.dp)
-                    .height(120.dp)
-                    .fillMaxSize()
-                    .background(
-                        color = LightBlue,
-                        shape = RoundedCornerShape(20))
-                    .border(5.dp, color = MiddeBlue, shape = RoundedCornerShape(20))
-            )
-            {
-                Box(
-                    modifier = Modifier
-                        .background(color = androidx.compose.ui.graphics.Color.Transparent, shape = RoundedCornerShape(0.dp))
-                        .padding(15.dp,15.dp,15.dp,0.dp)
-                )
-                {
-                    TextField(
-                        shape = RoundedCornerShape(10.dp),
-                        value = state.searchText,
-                        onValueChange = {
-                            onEvent(BookEvent.OnSearchTextChange(it))
-                        },
-                        placeholder = {
-                            Text(text = "Buch suchen", color = androidx.compose.ui.graphics.Color.Gray,fontWeight = FontWeight.Bold)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                tint = androidx.compose.ui.graphics.Color.Gray,
-                                contentDescription = "Search icon"
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    onEvent(BookEvent.OnSearchTextChange(""))
-                                }
-                            )
-                            {
-                                if(!state.searchText.isBlank())
-                                    Icon(
-                                        imageVector = Icons.Rounded.Clear,
-                                        tint = androidx.compose.ui.graphics.Color.Gray,
-                                        contentDescription = "Search icon"
-                                    )
-                            }
-                        },
-                        singleLine = true,
-                        maxLines = 1,
-                        modifier = Modifier
-                            .height(55.dp)
-                            .fillMaxWidth()
-                            .padding(0.dp),
-                        colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent, focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent),
+            //taskbar
+            Taskbar(state,onEvent)
 
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(0.dp,0.dp,20.dp,0.dp)
-                        .fillMaxHeight(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    if(!state.books.isEmpty())
-                    {
-                        if(!state.books.none { book -> book.condition == 0 })
-                            {
-                                Row(
-                                    modifier = Modifier
-                                        .background(color = Darkbeige, RoundedCornerShape(7.dp)),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                )
-                                {
-                                    Text(
-                                        text = state.books.filter { book -> book.condition == 0 }.size.toString(),
-                                        color = Darkgrey,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(5.dp,2.dp)
-                                    )
-                                }
-                            }
-
-                        if(!state.books.none { book -> book.condition == 1 })
-                            {
-                                Spacer(Modifier.width(5.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .background(color =DarkRed, RoundedCornerShape(7.dp)),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                )
-                                {
-                                    Text(
-                                        text = state.books.filter { book -> book.condition == 1 }.size.toString(),
-                                        color = Darkblue,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(5.dp,2.dp)
-                                    )
-                                }
-                            }
-
-                        if(!state.books.none { book -> book.condition == 2 })
-                            {
-                                Spacer(Modifier.width(5.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .background(color = Green, RoundedCornerShape(7.dp)),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                )
-                                {
-                                    Text(
-                                        text = state.books.filter { book -> book.condition == 2 }.size.toString(),
-                                        color = Darkgrey,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(5.dp,2.dp)
-                                    )
-                                }
-                            }
-
-                        Spacer(Modifier.width(5.dp))
-                        Row(
-                            modifier = Modifier
-                                .background(color = Darkblue, RoundedCornerShape(7.dp)),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        )
-                        {
-                            Text(
-                                text = state.books.size.toString(),
-                                color = Darkbeige,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.padding(5.dp,2.dp)
-                            )
-                        }
-                    }
-
-                    LazyColumn (
-
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ){
-                        item {
-                            Row (
-                                modifier = Modifier
-                                    .height(40.dp)
-                                    .horizontalScroll(rememberScrollState()),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ){
-                                SortType.values().forEach { sortType ->
-                                    Row (
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ){
-                                        RadioButton(
-                                            selected = state.sortType == sortType,
-                                            onClick = {
-                                                onEvent(BookEvent.SortBooks(sortType))
-                                            }
-                                        )
-
-                                        var iconcolor = androidx.compose.ui.graphics.Color(Color.DKGRAY)
-                                        if(state.sortType == sortType)
-                                            iconcolor = androidx.compose.ui.graphics.Color(Color.BLACK)
-
-                                        if(sortType == SortType.TITLE)
-                                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Title Filter" , tint = iconcolor)
-                                        if(sortType == SortType.AUTHOR)
-                                            Icon(imageVector = Icons.Default.Person, contentDescription = "Author Filter" , tint =iconcolor)
-                                        if(sortType == SortType.RATING)
-                                            Icon(imageVector = Icons.Default.Star, contentDescription = "Rating Filter" , tint = iconcolor)
-                                        if(sortType == SortType.CONDITION)
-                                            Icon(imageVector = Icons.Default.Info, contentDescription = "Condition Filter" , tint = iconcolor)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //if the list is empty then show this image
             if(state.books.isEmpty())
                 Image(
                     painter = painterResource(R.drawable.outline_search_off_24),
@@ -306,22 +139,22 @@ fun BookScreen(
                         .padding(0.dp,50.dp,0.dp,0.dp)
                     )
 
-
+            //main list where the books are displayed
             LazyColumn(
                 state = listState
-            ) {
+            )
+            {
                 items(state.books){ book ->
-                    Item_template(book,onEvent)
+                    ItemTemplate(book,onEvent)
                 }
-
             }
-
         }
     }
 }
 
+//converter for some values
 @Composable
-fun convert_state(condition: Int = 0): String {
+fun convertCondition(condition: Int = 0): String {
     if(condition == 1){
         return "Im Besitz"
     }
@@ -330,26 +163,223 @@ fun convert_state(condition: Int = 0): String {
     }
     return  "Noch kaufen"
 }
-
 @Composable
-fun convert_rate(rating: Int = -1): String {
+fun convertRating(rating: Int = -1): String {
     if(0 <= rating && rating <= 10){
         return rating.toString()
     }
     return  ""
 }
 
+//components
 @Composable
-fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
+fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Color){
+    Row(
+        modifier = Modifier
+            .background(color =backgroundColor, RoundedCornerShape(7.dp)),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    )
+    {
+        Text(
+            text = list.size.toString(),
+            color = Beige,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier
+                .background(color = backgroundColor, RoundedCornerShape(7.dp))
+                .padding(5.dp,2.dp)
+        )
+    }
+}
+@Composable
+fun FilterItem(icon: ImageVector, color: androidx.compose.ui.graphics.Color, description:String, onEvent:(BookEvent)->Unit,sortType: SortType){
+    Icon(
+        imageVector = icon,
+        contentDescription = description,
+        tint = color,
+        modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SortBooks(sortType)) }))
+}
+@Composable
+fun BookStatTemplate(text:String,icon: ImageVector,description: String){
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = Darkgrey,
+            modifier = Modifier.size(30.dp)
+        )
+        Text(
+            text = text,
+            modifier = Modifier
+                .padding(5.dp,0.dp),
+            color = Darkgrey,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+@Composable
+fun MenuItem(icon: ImageVector, onEvent: Function0<Unit>){
+    IconButton(
+        onClick = onEvent,
+        modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
+    )
+    {
+        Icon(
+            imageVector = icon,
+            contentDescription = "MenuItem",
+            tint = Darkbeige)
+    }
+}
+@Composable
+fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
+    Column(
+        modifier = Modifier
+            .padding(10.dp, end = 10.dp,top=50.dp, bottom = 5.dp)
+            .height(120.dp)
+            .fillMaxSize()
+            .background(
+                color = LightBlue,
+                shape = RoundedCornerShape(20))
+            .border(5.dp, color = MiddeBlue, shape = RoundedCornerShape(20))
+    )
+    {
+        //taskbar
+        Box(
+            modifier = Modifier
+                .background(color = androidx.compose.ui.graphics.Color.Transparent)
+                .padding(15.dp,15.dp,15.dp,0.dp)
+        )
+        {
+            //searchField
+            TextField(
+                shape = RoundedCornerShape(10.dp),
+                value = state.searchText,
+                onValueChange = {
+                    onEvent(BookEvent.OnSearchTextChange(it))
+                },
+                placeholder = {
+                    Text(
+                        text = "Buch suchen",
+                        color = androidx.compose.ui.graphics.Color.Gray,
+                        fontWeight = FontWeight.Bold)
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        tint = androidx.compose.ui.graphics.Color.Gray,
+                        contentDescription = "Search icon"
+                    )
+                },
+                trailingIcon = {
+                    // if the searchText is not blank then show the clear button
+                    if(!state.searchText.isBlank())
+                        IconButton(
+                            onClick = {
+                                onEvent(BookEvent.OnSearchTextChange(""))
+                            }
+                        )
+                        {
+                            Icon(
+                                imageVector = Icons.Rounded.Clear,
+                                tint = androidx.compose.ui.graphics.Color.Gray,
+                                contentDescription = "Search icon"
+                            )
+                        }
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .height(55.dp)
+                    .fillMaxWidth()
+                    .padding(0.dp),
+                colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent, focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent),
+
+                )
+        }
+
+        //filter + stats for the main list
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp,0.dp,20.dp,0.dp),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            //when the main list is not empty then show the stats for the main list
+            if(!state.books.isEmpty())
+            {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                    ){
+                    //show the amount of books in the main list that satisfied condition == 0
+                    val condition0 = state.books.filter { book -> book.condition == 0 }
+                    if(!condition0.isEmpty())
+                        StatsItem(condition0,Darkbeige)
+
+                    //show the amount of books in the main list that satisfied condition == 1
+                    val condition1 = state.books.filter { book -> book.condition == 1 }
+                    if(!condition1.isEmpty())
+                        StatsItem(condition1,DarkRed)
+
+                    //show the amount of books in the main list that satisfied condition == 2
+                    val condition2 = state.books.filter { book -> book.condition == 2 }
+                    if(!condition2.isEmpty())
+                        StatsItem(condition2,Green)
+
+                    //show the total amount of books in the main list
+                    StatsItem(state.books,Darkblue)
+                }
+            }
+
+            //filter for the main list
+            Row (
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ){
+                SortType.entries.forEach { sortType ->
+                    Row (
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 10.dp)
+                    ){
+                        //set the color of icon
+                        var iconColor = androidx.compose.ui.graphics.Color(Color.DKGRAY)
+                        if(state.sortType == sortType)
+                            iconColor = androidx.compose.ui.graphics.Color(Color.BLACK)
+
+                        //items of the filter
+                        if(sortType == SortType.TITLE)
+                            FilterItem(Icons.Default.Edit,iconColor,"Title Filter",onEvent,sortType)
+                        if(sortType == SortType.AUTHOR)
+                            FilterItem(Icons.Default.Person,iconColor,"Author Filter",onEvent,sortType)
+                        if(sortType == SortType.RATING)
+                            FilterItem(Icons.Default.Star,iconColor,"Rating Filter",onEvent,sortType)
+                        if(sortType == SortType.CONDITION)
+                            FilterItem(Icons.Default.Info,iconColor,"Condition Filter",onEvent,sortType)
+                    }
+                }
+            }
+        }
+    }
+}
+@Composable
+fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
+    //Variable for the item
     var expanded by remember { mutableStateOf(false) }
-    var cardcolor = Darkbeige
+
+    //set the background color depend to the condition of the book
+    var cardColor = Darkbeige
     if(book.condition == 1){
-        cardcolor = DarkRed
+        cardColor = DarkRed
     }
     if(book.condition == 2) {
-        cardcolor = Green
+        cardColor = Green
     }
 
+    //the item card for the book
     Card(
         modifier = Modifier
             .fillMaxSize()
@@ -359,104 +389,45 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
     ) {
         Column(
             modifier = Modifier
-                .background(color = Darkblue)
-                .padding(0.dp),
-        ) {
-            if(expanded)
-                Box(
-                    modifier = Modifier
-                        .padding(end = 10.dp, bottom = 5.dp)
-                        .align(Alignment.End),
-                )
-                {
-                    Row {
-                        if(!book.urllink.isBlank())
-                        {
-                            IconButton(onClick = {
-                                onEvent(BookEvent.LoadURL(book.urllink))
-
-                            },
-                                modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
-                            ) {
-                                Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Go to  url" , tint = Darkbeige)
-                            }
-                            Spacer(Modifier.width(10.dp))
-                        }
-                        IconButton(onClick = {
-                            onEvent(BookEvent.ChangeBook(book))
-
-                        },
-                            modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
-                        ) {
-                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Change book" , tint = Darkbeige)
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        IconButton(onClick = {
-                            onEvent(BookEvent.DeleteBook(book))
-
-                        },
-                            modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
-                        ) {
-                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete book" , tint = Darkbeige)
-                        }
-                    }
-                }
-            Row (
+                .background(color = Darkblue),
+        )
+        {
+            //title
+            Text(
+                text = book.title,
                 modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .align(alignment = Alignment.Start)
                     .fillMaxWidth()
-                    .padding(10.dp,0.dp,10.dp,5.dp)
-                    .background(color = Darkblue),
-                horizontalArrangement = Arrangement.Start
+                    .padding(start = 10.dp, bottom = 5.dp),
+                color = Darkbeige,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black
+            )
 
-            ){
-                Text(
-                    text = book.title,
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .align(alignment = Alignment.CenterVertically)
-                        .width(320.dp),
-                    color = Darkbeige,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                )
-                {
-                    IconButton(
-                        onClick = { expanded = !expanded},
-                        modifier = Modifier
-                            .background(color = Darkgrey, shape = RoundedCornerShape(20.dp))
-                    ) {
-                        if(!expanded)
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Delete book" , tint = Darkbeige)
-                        else
-                            Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Delete book" , tint = Darkbeige)
-                    }
-                }
-                Row (
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = androidx.compose.ui.graphics.Color(Color.TRANSPARENT)),
-                    horizontalArrangement = Arrangement.Start,
-                ){
-                }
-            }
+            //body
             Card(
                 shape = RoundedCornerShape(10,10,30,30),
                 border = BorderStroke(width = 4.dp,color = Beige),
-                modifier = Modifier.padding(5.dp).background(color = Darkblue)
+                modifier = Modifier
+                    .padding(5.dp,0.dp)
+                    .background(color = Darkblue)
+                    .clickable(
+                        onClick = {
+                            expanded = !expanded
+                        }
+                    )
             )
             {
                 Row (
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(color = cardcolor),
+                        .background(color = cardColor),
                     verticalAlignment = Alignment.CenterVertically,
+                    )
+                {
 
-                    ){
+                    //the image of the book
                     Image(
                         painter = painterResource(id = R.drawable.book),
                         contentDescription = "Photo of Book",
@@ -466,63 +437,57 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
                             .padding(10.dp)
                     )
 
-                    Column(horizontalAlignment = AbsoluteAlignment.Left, modifier = Modifier.padding(5.dp)) {
+                    //the other stats of the book
+                    Column(
+                        horizontalAlignment = AbsoluteAlignment.Left,
+                        modifier = Modifier.padding(5.dp))
+                    {
 
+                        //if the author of the book is given then display it
                         if(!book.author.isBlank()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Author of the book",
-                                    tint = Darkgrey,
-                                    modifier = Modifier.size(30.dp)
-                                )
-                                Text(
-                                    text = book.author,
-                                    modifier = Modifier
-                                        .padding(5.dp,0.dp),
-                                    color = Darkgrey,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-
+                            BookStatTemplate(book.author,Icons.Default.Person,"Author of the book")
                         }
+
                         Row {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(170.dp))  {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = "Author of the book",
-                                    tint = Darkgrey,
-                                    modifier = Modifier.size(30.dp)
-                                )
-                                Text(
-                                    text = convert_state(book.condition),
-                                    modifier = Modifier
-                                        .padding(5.dp,0.dp),
-                                    color = Darkgrey,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            if(convert_rate(book.rating) != "") {
-                                Row (verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = "Author of the book",
-                                        tint = Darkgrey,
-                                        modifier = Modifier.size(30.dp)
-                                    )
-                                    Text(
-                                        text = convert_rate(book.rating),
-                                        modifier = Modifier
-                                            .padding(5.dp,0.dp),
-                                        color = Darkblue,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
+
+                            //display the condition of the book
+                            BookStatTemplate(convertCondition(book.condition),Icons.Default.Info,"Condition of the book")
+
+                            //if the rating of the book is given then display it
+                            if(convertRating(book.rating) != "") {
+                                BookStatTemplate(convertRating(book.rating),Icons.Default.Star,"Rating of the book")
                             }
                         }
                     }
                 }
             }
+
+            //the menu
+            if(expanded)
+                Box(
+                    modifier = Modifier
+                        .padding(end = 20.dp, bottom = 0.dp, top = 5.dp)
+                        .align(Alignment.End),
+                )
+                {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    )
+                    {
+
+                        //if a urlLink is given than show it
+                        if(!book.urllink.isBlank())
+                        {
+                            MenuItem(Icons.Default.ShoppingCart,{onEvent(BookEvent.LoadURL(book.urllink))})
+                        }
+
+                        // change the book
+                        MenuItem(Icons.Default.Settings,{onEvent(BookEvent.ChangeBook(book))})
+
+                        //delete the book
+                        MenuItem(Icons.Default.Delete,{onEvent(BookEvent.DeleteBook(book))})
+                    }
+                }
         }
     }
 }

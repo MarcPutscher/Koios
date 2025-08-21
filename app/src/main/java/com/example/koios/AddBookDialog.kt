@@ -9,13 +9,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -27,39 +40,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.koios.ui.theme.Beige
 import com.example.koios.ui.theme.Darkbeige
 import com.example.koios.ui.theme.Darkgrey
 import com.example.koios.ui.theme.LightBlue
 import com.example.koios.ui.theme.LightWithe
 
 @Composable
-fun AddBookDialog(
-    state: BookState,
-    onEvent: (BookEvent) -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
-        modifier = modifier.height(600.dp),
-        onDismissRequest = {
-            onEvent(BookEvent.HideDialog)
-        },
+        onDismissRequest = { onEvent(BookEvent.HideDialog) },
         containerColor = Darkgrey,
-        title = {
-            var title = "Buch hinzufügen"
-            if(state.id != 0)
-                title = "Buch ändern"
-            Text(
-                text = title,
-                fontWeight = FontWeight.Black,
-                fontSize = 30.sp,
-                color = Darkbeige
-            ) },
+        title = {Title(state)},
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            )
+            {
+                //text input of title
                 TextField(
                     value = state.title,
                     onValueChange = {
@@ -69,10 +70,36 @@ fun AddBookDialog(
                         Text(text = "Titel", color = Color.Gray,fontWeight = FontWeight.Bold)
                     },
                     shape = RoundedCornerShape(20.dp),
-                    singleLine = false,
+                    singleLine = true,
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
                         unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            tint = androidx.compose.ui.graphics.Color.Gray,
+                            contentDescription = ""
+                        )
+                    },
+                    trailingIcon = {
+                        // if the searchText is not blank then show the clear button
+                        if(!state.title.isBlank())
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.SetTitle(""))
+                                }
+                            )
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    tint = androidx.compose.ui.graphics.Color.Gray,
+                                    contentDescription = ""
+                                )
+                            }
+                    },
                 )
+
+                //text input of author
                 TextField(
                     value = state.author,
                     onValueChange = {
@@ -85,9 +112,35 @@ fun AddBookDialog(
                     singleLine = true,
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
                         unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Person,
+                            tint = androidx.compose.ui.graphics.Color.Gray,
+                            contentDescription = ""
+                        )
+                    },
+                    trailingIcon = {
+                        // if the searchText is not blank then show the clear button
+                        if(!state.author.isBlank())
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.SetAuthor(""))
+                                }
+                            )
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    tint = androidx.compose.ui.graphics.Color.Gray,
+                                    contentDescription = ""
+                                )
+                            }
+                    },
                 )
+
+                //text input of urlLink
                 TextField(
-                    value = state.urllink,
+                    value = state.urlLink,
                     onValueChange = {
                         onEvent(BookEvent.SetURLLink(it))
                     },
@@ -98,8 +151,35 @@ fun AddBookDialog(
                     singleLine = true,
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
                         unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.ShoppingCart,
+                            tint = androidx.compose.ui.graphics.Color.Gray,
+                            contentDescription = ""
+                        )
+                    },
+                    trailingIcon = {
+                        // if the searchText is not blank then show the clear button
+                        if(!state.urlLink.isBlank())
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.SetURLLink(""))
+                                }
+                            )
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    tint = androidx.compose.ui.graphics.Color.Gray,
+                                    contentDescription = ""
+                                )
+                            }
+                    },
                 )
+
                 Spacer(Modifier.height(5.dp))
+
+                //slider input of rating
                 Column (
                     modifier = Modifier
                         .background(
@@ -107,12 +187,16 @@ fun AddBookDialog(
                             shape = RoundedCornerShape(20))
                         .padding(5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                )
+                {
+                    //title
                     Text(
                         text = "Bewertung: "+ state.rating.toString(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
+
+                    //content
                     Slider(
                         modifier = Modifier.padding(10.dp,10.dp,10.dp,0.dp),
                         value = state.rating.toFloat(),
@@ -122,50 +206,54 @@ fun AddBookDialog(
                         steps = 11
                     )
                 }
+
+
                 Row (
-                    verticalAlignment = Alignment.CenterVertically
-                ){
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                {
+                    //picker input of condition
                     Column(
                         modifier = Modifier
-                            .padding(0.dp,5.dp,0.dp,0.dp)
+                            .padding(0.dp,10.dp,0.dp,0.dp)
                             .background(
                                 color = LightBlue,
                                 shape = RoundedCornerShape(20)),
                         horizontalAlignment = Alignment.Start
 
-                    ){
-                        Column(
+                    )
+                    {
+                        //title
+                        Text(
+                            text = "Status",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
                             modifier = Modifier
-                                .height(170.dp)
-                                .width(170.dp)
-                                .padding(10.dp,0.dp),
-                            horizontalAlignment = Alignment.Start
-                        ){
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(0.dp,5.dp,0.dp,2.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ){
-                                Text(
-                                    text = "Status",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp,
-                                )
-                            }
-                            listOf(0,1,2).forEach { conditionType ->
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 5.dp)
+                        )
+
+                        //content
+                        LazyColumn(
+                            modifier = Modifier
+                                .padding(vertical = 5.dp, horizontal = 15.dp)
+                        )
+                        {
+                            items(items=listOf(0,1,2)){ conditionType ->
                                 Row (
-                                    modifier = Modifier
-                                        .clickable{
-                                            onEvent(BookEvent.SetCondition(conditionType))
-                                        }
-                                        .height(28.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ){
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start
+                                )
+                                {
                                     RadioButton(
                                         selected = state.condition == conditionType,
                                         onClick = {
                                             onEvent(BookEvent.SetCondition(conditionType))
                                         }
                                     )
+
+                                    //set text of the item
                                     var text = "Noch kaufen"
                                     if(conditionType == 1){
                                         text = "Im Besitz"
@@ -178,18 +266,26 @@ fun AddBookDialog(
                             }
                         }
                     }
-                    Image(
-                        painter = painterResource(id = R.drawable.book),
-                        contentDescription = "Photo of Book",
-                        modifier = Modifier
-                            .width(100.dp)
-                            .height(70.dp)
-                            .padding(0.dp)
-                            .clickable( onClick = {
-                                onEvent(BookEvent.SetImage)
-                            }),
-                        alignment = Alignment.Center
+
+                    //image of the book
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     )
+                    {
+                        Image(
+                            painter = painterResource(id = R.drawable.book),
+                            contentDescription = "Photo of Book",
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(70.dp)
+                                .padding(0.dp)
+                                .clickable( onClick = {
+                                    onEvent(BookEvent.SetImage)
+                                }),
+                        )
+                    }
+
                 }
             }
         },
@@ -205,5 +301,20 @@ fun AddBookDialog(
                 }
             }
         },
+    )
+}
+@Composable
+fun Title(state: BookState){
+    //set the title of the dialog
+    var title = "Buch hinzufügen"
+    if(state.id != 0)
+        title = "Buch ändern"
+    Text(
+        text = title,
+        fontWeight = FontWeight.Black,
+        fontSize = 30.sp,
+        color = Darkbeige,
+        modifier = Modifier
+            .fillMaxWidth(),
     )
 }

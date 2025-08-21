@@ -14,12 +14,16 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
+    //Access Point to the database
     private val dao: BookDao,
+    //Traceback to the MainActivity
     var activity: MainActivity?
 ): ViewModel(){
-    //Variable for the book
+
+    //Variable for the booklist
     private val _searchText = MutableStateFlow("")
     val searchText = _searchText.asStateFlow()
+
     private val _sortType = MutableStateFlow(SortType.CONDITION)
     private val _books = _sortType
         .flatMapLatest { sortType ->
@@ -39,7 +43,9 @@ class BookViewModel (
                 }
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(),emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),emptyList())
+
+    // Access point to the backend
     private val _state = MutableStateFlow(BookState())
     val state = combine(_state,_sortType,_books){state,sortType,books->
         state.copy(
@@ -48,109 +54,10 @@ class BookViewModel (
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BookState())
 
-    //Event logic for book
+
+    //Event logic
     fun onEvent(event: BookEvent){
         when(event){
-            is BookEvent.DeleteBook -> {
-                viewModelScope.launch {
-                    dao.deleteBool(event.book)
-                }
-
-            }
-            BookEvent.HideDialog -> {
-                _state.update { it.copy(
-                    isAddingBook = false,
-                    isChangeBook = false,
-                    title = "",
-                    author = "",
-                    rating = -1,
-                    condition = 0,
-                    image = "",
-                    urllink = "",
-                    id = 0
-                ) }
-            }
-            BookEvent.SaveBook -> {
-                val title = state.value.title
-                val author = state.value.author
-                val rating = state.value.rating
-                val condition = state.value.condition
-                val image = state.value.image
-                val urlLink = state.value.urllink
-
-                if (title.isBlank()){
-                    return
-                }
-                var book = Book(
-                    title = title,
-                    author = author,
-                    rating = rating,
-                    condition = condition,
-                    image = image,
-                    urllink = urlLink
-                )
-
-                if(state.value.id != 0)
-                {
-                    book = Book(
-                        id = state.value.id,
-                        title = title,
-                        author = author,
-                        rating = rating,
-                        condition = condition,
-                        image = image,
-                        urllink = urlLink
-                    )
-                }
-
-                if(urlLink != "##insert##")
-                    viewModelScope.launch {
-                        dao.upsetBook(book)
-                    }
-                else
-                    if(!title.isBlank()) {
-                        for(book in title.lines()){
-                            val a = book.split("#")
-                            var book2: Book
-                            if (a.size == 4){
-                                book2 = Book(
-                                    title = a[0],
-                                    author = a[1],
-                                    rating = rating,
-                                    condition = a[3].toInt(),
-                                    image = image,
-                                    urllink = a[2]
-                                )
-                            }
-                            else{
-                                book2 = Book(
-                                    title = a[0],
-                                    author = "",
-                                    rating = rating,
-                                    condition = a[2].toInt(),
-                                    image = image,
-                                    urllink = a[1]
-                                )
-                            }
-                            viewModelScope.launch {
-                                dao.upsetBook(book2)
-                            }
-                        }
-
-                    }
-
-                _state.update { it.copy(
-                    isAddingBook = false,
-                    isChangeBook = false,
-                    title = "",
-                    author = "",
-                    rating = -1,
-                    condition = 0,
-                    image = "",
-                    urllink = "",
-                    id = 0
-                ) }
-            }
             is BookEvent.SetAuthor -> {
                 _state.update { it.copy(
                     author = event.author
@@ -173,12 +80,16 @@ class BookViewModel (
             }
             is BookEvent.SetURLLink -> {
                 _state.update { it.copy(
-                    urllink = event.urllink
+                    urlLink = event.urllink
                 ) }
             }
             is BookEvent.SetImage -> {
             }
-            BookEvent.ShowDialog -> {
+
+            is BookEvent.HideDialog -> {
+                setStateToDefault()
+            }
+            is BookEvent.ShowDialog -> {
                 _state.update { it.copy(
                     isAddingBook = true
                 ) }
@@ -186,13 +97,15 @@ class BookViewModel (
             is BookEvent.SortBooks -> {
                 _sortType.value = event.sortType
             }
-            is BookEvent.OnSearchTextChange ->{
-                _state.update { it.copy(
-                    searchText = event.searchText
-                ) }
-                _searchText.value = event.searchText
-            }
+            is BookEvent.DeleteBook -> {
+                viewModelScope.launch {
+                    dao.deleteBool(event.book)
+                }
 
+            }
+            is BookEvent.SaveBook -> {
+                save()
+            }
             is BookEvent.ChangeBook ->{
                 _state.update { it.copy(
                     isAddingBook = false,
@@ -202,9 +115,15 @@ class BookViewModel (
                     rating = event.changebook.rating,
                     condition = event.changebook.condition,
                     image = event.changebook.image,
-                    urllink = event.changebook.urllink,
+                    urlLink = event.changebook.urllink,
                     id = event.changebook.id
                 ) }
+            }
+            is BookEvent.OnSearchTextChange ->{
+                _state.update { it.copy(
+                    searchText = event.searchText
+                ) }
+                _searchText.value = event.searchText
             }
             is BookEvent.LoadURL -> {
                 activity?.openUrl(event.url)
@@ -214,6 +133,94 @@ class BookViewModel (
                     isMenuExpand =  event.exand
                 ) }
             }
+        }
+    }
+    fun setStateToDefault()
+    {
+        _state.update { it.copy(
+            isAddingBook = false,
+            isChangeBook = false,
+            title = "",
+            author = "",
+            rating = -1,
+            condition = 0,
+            image = "",
+            urlLink = "",
+            id = 0
+        ) }
+    }
+    fun save(){
+        val title = state.value.title
+        val author = state.value.author
+        val rating = state.value.rating
+        val condition = state.value.condition
+        val image = state.value.image
+        val urlLink = state.value.urlLink
+
+        if (title.isBlank()){
+            return
+        }
+        var book = Book(
+            title = title,
+            author = author,
+            rating = rating,
+            condition = condition,
+            image = image,
+            urllink = urlLink
+        )
+
+        if(state.value.isChangeBook)
+        {
+            book = Book(
+                id = state.value.id,
+                title = title,
+                author = author,
+                rating = rating,
+                condition = condition,
+                image = image,
+                urllink = urlLink
+            )
+        }
+
+        if(urlLink != "##insert##")
+            viewModelScope.launch {
+                dao.upsetBook(book)
+            }
+        else
+            saveMany(book)
+
+        setStateToDefault()
+    }
+    fun saveMany(defaultBook: Book){
+        if(!defaultBook.title.isBlank()) {
+            for(book in defaultBook.title.lines()){
+                val a = book.split("#")
+                var book2: Book
+                if (a.size == 4){
+                    book2 = Book(
+                        title = a[0],
+                        author = a[1],
+                        rating = defaultBook.rating,
+                        condition = a[3].toInt(),
+                        image = defaultBook.image,
+                        urllink = a[2]
+                    )
+                }
+                else{
+                    book2 = Book(
+                        title = a[0],
+                        author = "",
+                        rating = defaultBook.rating,
+                        condition = a[2].toInt(),
+                        image = defaultBook.image,
+                        urllink = a[1]
+                    )
+                }
+                viewModelScope.launch {
+                    dao.upsetBook(book2)
+                }
+            }
+
         }
     }
 }
