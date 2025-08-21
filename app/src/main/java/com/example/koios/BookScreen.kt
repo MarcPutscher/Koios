@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,14 +21,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
@@ -41,7 +45,13 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,24 +59,44 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.koios.ui.theme.Beige
+import com.example.koios.ui.theme.DarkRed
+import com.example.koios.ui.theme.Darkbeige
+import com.example.koios.ui.theme.Darkblue
+import com.example.koios.ui.theme.Darkgrey
+import com.example.koios.ui.theme.Green
+import com.example.koios.ui.theme.LightBlue
+import com.example.koios.ui.theme.LightWithe
+import com.example.koios.ui.theme.MiddeBlue
+import kotlinx.coroutines.launch
 
-var backgroundcolor =Color.rgb(34, 40, 49)
-var backgroundcolor2 =Color.rgb(57, 62, 70)
-var backgroundcolor3 =Color.rgb(148, 137, 121)
-var backgroundcolor4 =Color.rgb(223, 208, 184)
 @Composable
 fun BookScreen(
     state: BookState,
     onEvent: (BookEvent) -> Unit,
 
 ){
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold (
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                onEvent(BookEvent.ShowDialog)
-            }
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add book")
+            Column {
+                if(listState.canScrollBackward)
+                    FloatingActionButton(onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(index = 0)}
+                    }
+                    ) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Add book", Modifier.size(30.dp))
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                FloatingActionButton(onClick = {
+                    onEvent(BookEvent.ShowDialog)
+                }
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add book", Modifier.size(30.dp))
+                }
             }
         },
         modifier = Modifier.padding(0.dp)
@@ -76,20 +106,21 @@ fun BookScreen(
             AddBookDialog(state = state, onEvent = onEvent)
         }
         Column (
-            modifier = Modifier.padding(PaddingValues(0.dp,50.dp,0.dp,0.dp))
-                .background(color = androidx.compose.ui.graphics.Color(backgroundcolor))
+            modifier = Modifier.padding(PaddingValues(0.dp,0.dp,0.dp,0.dp))
+                .background(color = Darkblue)
                 .fillMaxSize()
 
         ){
+            Spacer(Modifier.height(50.dp))
             Column(
                 modifier = Modifier
                     .padding(10.dp)
                     .height(120.dp)
                     .fillMaxSize()
                     .background(
-                        color = androidx.compose.ui.graphics.Color(Color.rgb(127, 140, 170)),
+                        color = LightBlue,
                         shape = RoundedCornerShape(20))
-                    .border(5.dp, color = androidx.compose.ui.graphics.Color(Color.rgb(54, 73, 117)), shape = RoundedCornerShape(20))
+                    .border(5.dp, color = MiddeBlue, shape = RoundedCornerShape(20))
             )
             {
                 Box(
@@ -105,7 +136,7 @@ fun BookScreen(
                             onEvent(BookEvent.OnSearchTextChange(it))
                         },
                         placeholder = {
-                            Text(text = "Buch suchen")
+                            Text(text = "Buch suchen", color = androidx.compose.ui.graphics.Color.Gray,fontWeight = FontWeight.Bold)
                         },
                         leadingIcon = {
                             Icon(
@@ -115,52 +146,127 @@ fun BookScreen(
                             )
                         },
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Clear,
-                                tint = androidx.compose.ui.graphics.Color.Gray,
-                                contentDescription = "Search icon"
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.OnSearchTextChange(""))
+                                }
                             )
+                            {
+                                if(!state.searchText.isBlank())
+                                    Icon(
+                                        imageVector = Icons.Rounded.Clear,
+                                        tint = androidx.compose.ui.graphics.Color.Gray,
+                                        contentDescription = "Search icon"
+                                    )
+                            }
                         },
                         singleLine = true,
                         maxLines = 1,
                         modifier = Modifier
                             .height(55.dp)
                             .fillMaxWidth()
-                            .padding(0.dp)
+                            .padding(0.dp),
+                        colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent, focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent),
 
                     )
                 }
-                Row (
+                Row(
                     modifier = Modifier
-                        .padding(15.dp,5.dp,15.dp,0.dp)
-
+                        .fillMaxWidth()
+                        .padding(0.dp,0.dp,20.dp,0.dp)
+                        .fillMaxHeight(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ){
+                    if(!state.books.isEmpty())
+                    {
+                        if(!state.books.none { book -> book.condition == 0 })
+                            {
+                                Row(
+                                    modifier = Modifier
+                                        .background(color = Darkbeige, RoundedCornerShape(7.dp)),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                )
+                                {
+                                    Text(
+                                        text = state.books.filter { book -> book.condition == 0 }.size.toString(),
+                                        color = Darkgrey,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(5.dp,2.dp)
+                                    )
+                                }
+                            }
 
-                    Image(
-                        painter = painterResource(id = R.drawable.outline_filter_alt_24),
-                        contentDescription = "Filter book",
-                        modifier = Modifier
-                            .height(30.dp))
+                        if(!state.books.none { book -> book.condition == 1 })
+                            {
+                                Spacer(Modifier.width(5.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .background(color =DarkRed, RoundedCornerShape(7.dp)),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                )
+                                {
+                                    Text(
+                                        text = state.books.filter { book -> book.condition == 1 }.size.toString(),
+                                        color = Darkblue,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(5.dp,2.dp)
+                                    )
+                                }
+                            }
+
+                        if(!state.books.none { book -> book.condition == 2 })
+                            {
+                                Spacer(Modifier.width(5.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .background(color = Green, RoundedCornerShape(7.dp)),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                )
+                                {
+                                    Text(
+                                        text = state.books.filter { book -> book.condition == 2 }.size.toString(),
+                                        color = Darkgrey,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(5.dp,2.dp)
+                                    )
+                                }
+                            }
+
+                        Spacer(Modifier.width(5.dp))
+                        Row(
+                            modifier = Modifier
+                                .background(color = Darkblue, RoundedCornerShape(7.dp)),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        )
+                        {
+                            Text(
+                                text = state.books.size.toString(),
+                                color = Darkbeige,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.padding(5.dp,2.dp)
+                            )
+                        }
+                    }
 
                     LazyColumn (
 
-                        modifier = Modifier.fillMaxSize()
-                            .height(50.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ){
                         item {
                             Row (
                                 modifier = Modifier
-                                    .height(30.dp)
+                                    .height(40.dp)
                                     .horizontalScroll(rememberScrollState()),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ){
                                 SortType.values().forEach { sortType ->
                                     Row (
-                                        modifier = Modifier
-                                            .clickable{
-                                                onEvent(BookEvent.SortBooks(sortType))
-                                            },
                                         verticalAlignment = Alignment.CenterVertically
                                     ){
                                         RadioButton(
@@ -169,7 +275,19 @@ fun BookScreen(
                                                 onEvent(BookEvent.SortBooks(sortType))
                                             }
                                         )
-                                        Text(text = sortType.name)
+
+                                        var iconcolor = androidx.compose.ui.graphics.Color(Color.DKGRAY)
+                                        if(state.sortType == sortType)
+                                            iconcolor = androidx.compose.ui.graphics.Color(Color.BLACK)
+
+                                        if(sortType == SortType.TITLE)
+                                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Title Filter" , tint = iconcolor)
+                                        if(sortType == SortType.AUTHOR)
+                                            Icon(imageVector = Icons.Default.Person, contentDescription = "Author Filter" , tint =iconcolor)
+                                        if(sortType == SortType.RATING)
+                                            Icon(imageVector = Icons.Default.Star, contentDescription = "Rating Filter" , tint = iconcolor)
+                                        if(sortType == SortType.CONDITION)
+                                            Icon(imageVector = Icons.Default.Info, contentDescription = "Condition Filter" , tint = iconcolor)
                                     }
                                 }
                             }
@@ -177,11 +295,25 @@ fun BookScreen(
                     }
                 }
             }
-            LazyColumn {
+            if(state.books.isEmpty())
+                Image(
+                    painter = painterResource(R.drawable.outline_search_off_24),
+                    contentDescription = "Condition Filter" ,
+                    modifier = Modifier
+                        .size(300.dp)
+                        .fillMaxSize()
+                        .align(Alignment.CenterHorizontally)
+                        .padding(0.dp,50.dp,0.dp,0.dp)
+                    )
 
+
+            LazyColumn(
+                state = listState
+            ) {
                 items(state.books){ book ->
                     Item_template(book,onEvent)
                 }
+
             }
 
         }
@@ -209,29 +341,72 @@ fun convert_rate(rating: Int = -1): String {
 
 @Composable
 fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
-
-    var color = backgroundcolor3
+    var expanded by remember { mutableStateOf(false) }
+    var cardcolor = Darkbeige
     if(book.condition == 1){
-        color = Color.rgb(165, 91, 75)
+        cardcolor = DarkRed
     }
     if(book.condition == 2) {
-        color = Color.rgb(0,139,0)
+        cardcolor = Green
     }
+
     Card(
         modifier = Modifier
             .fillMaxSize()
             .padding(12.dp)
-            .background(color = androidx.compose.ui.graphics.Color(backgroundcolor)),
+            .background(color = Darkblue),
+        shape = RoundedCornerShape(0.dp),
     ) {
         Column(
             modifier = Modifier
-                .background(color = androidx.compose.ui.graphics.Color(backgroundcolor)),
+                .background(color = Darkblue)
+                .padding(0.dp),
         ) {
+            if(expanded)
+                Box(
+                    modifier = Modifier
+                        .padding(end = 10.dp, bottom = 5.dp)
+                        .align(Alignment.End),
+                )
+                {
+                    Row {
+                        if(!book.urllink.isBlank())
+                        {
+                            IconButton(onClick = {
+                                onEvent(BookEvent.LoadURL(book.urllink))
+
+                            },
+                                modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
+                            ) {
+                                Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Go to  url" , tint = Darkbeige)
+                            }
+                            Spacer(Modifier.width(10.dp))
+                        }
+                        IconButton(onClick = {
+                            onEvent(BookEvent.ChangeBook(book))
+
+                        },
+                            modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
+                        ) {
+                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Change book" , tint = Darkbeige)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        IconButton(onClick = {
+                            onEvent(BookEvent.DeleteBook(book))
+
+                        },
+                            modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
+                        ) {
+                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete book" , tint = Darkbeige)
+                        }
+                    }
+                }
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(0.dp,0.dp,10.dp,5.dp),
-                horizontalArrangement = Arrangement.End
+                    .padding(10.dp,0.dp,10.dp,5.dp)
+                    .background(color = Darkblue),
+                horizontalArrangement = Arrangement.Start
 
             ){
                 Text(
@@ -239,44 +414,46 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
                     modifier = Modifier
                         .horizontalScroll(rememberScrollState())
                         .align(alignment = Alignment.CenterVertically)
-                        .width(260.dp),
-                    color = androidx.compose.ui.graphics.Color(backgroundcolor3),
+                        .width(320.dp),
+                    color = Darkbeige,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black
                 )
-                Row (
-                    modifier = Modifier.fillMaxHeight(),
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
+                )
+                {
+                    IconButton(
+                        onClick = { expanded = !expanded},
+                        modifier = Modifier
+                            .background(color = Darkgrey, shape = RoundedCornerShape(20.dp))
+                    ) {
+                        if(!expanded)
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Delete book" , tint = Darkbeige)
+                        else
+                            Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Delete book" , tint = Darkbeige)
+                    }
+                }
+                Row (
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = androidx.compose.ui.graphics.Color(Color.TRANSPARENT)),
+                    horizontalArrangement = Arrangement.Start,
                 ){
-                    IconButton(onClick = {
-                        onEvent(BookEvent.ChangeBook(book))
-
-                    },
-                        modifier = Modifier.background(color = androidx.compose.ui.graphics.Color(backgroundcolor2), shape = RoundedCornerShape(20.dp)),
-                    ) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Change book" , tint = androidx.compose.ui.graphics.Color(backgroundcolor3))
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    IconButton(onClick = {
-                        onEvent(BookEvent.DeleteBook(book))
-
-                    },
-                        modifier = Modifier.background(color = androidx.compose.ui.graphics.Color(backgroundcolor2), shape = RoundedCornerShape(20.dp)),
-                    ) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete book" , tint = androidx.compose.ui.graphics.Color(backgroundcolor3))
-                    }
                 }
             }
             Card(
                 shape = RoundedCornerShape(10,10,30,30),
-                border = BorderStroke(width = 4.dp,color = androidx.compose.ui.graphics.Color(backgroundcolor4)),
-                modifier = Modifier.padding(5.dp).background(color = androidx.compose.ui.graphics.Color(backgroundcolor))
+                border = BorderStroke(width = 4.dp,color = Beige),
+                modifier = Modifier.padding(5.dp).background(color = Darkblue)
             )
             {
                 Row (
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(color = androidx.compose.ui.graphics.Color(color)),
+                        .background(color = cardcolor),
                     verticalAlignment = Alignment.CenterVertically,
 
                     ){
@@ -296,14 +473,14 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = "Author of the book",
-                                    tint = androidx.compose.ui.graphics.Color(backgroundcolor2),
+                                    tint = Darkgrey,
                                     modifier = Modifier.size(30.dp)
                                 )
                                 Text(
                                     text = book.author,
                                     modifier = Modifier
                                         .padding(5.dp,0.dp),
-                                    color = androidx.compose.ui.graphics.Color(backgroundcolor),
+                                    color = Darkgrey,
                                     fontWeight = FontWeight.Black
                                 )
                             }
@@ -314,14 +491,14 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
                                 Icon(
                                     imageVector = Icons.Default.Info,
                                     contentDescription = "Author of the book",
-                                    tint = androidx.compose.ui.graphics.Color(backgroundcolor2),
+                                    tint = Darkgrey,
                                     modifier = Modifier.size(30.dp)
                                 )
                                 Text(
                                     text = convert_state(book.condition),
                                     modifier = Modifier
                                         .padding(5.dp,0.dp),
-                                    color = androidx.compose.ui.graphics.Color(backgroundcolor),
+                                    color = Darkgrey,
                                     fontWeight = FontWeight.Black
                                 )
                             }
@@ -330,14 +507,14 @@ fun Item_template(book: Book, onEvent: (BookEvent) -> Unit) {
                                     Icon(
                                         imageVector = Icons.Default.Star,
                                         contentDescription = "Author of the book",
-                                        tint = androidx.compose.ui.graphics.Color(backgroundcolor2),
+                                        tint = Darkgrey,
                                         modifier = Modifier.size(30.dp)
                                     )
                                     Text(
                                         text = convert_rate(book.rating),
                                         modifier = Modifier
                                             .padding(5.dp,0.dp),
-                                        color = androidx.compose.ui.graphics.Color(backgroundcolor),
+                                        color = Darkblue,
                                         fontWeight = FontWeight.Black
                                     )
                                 }

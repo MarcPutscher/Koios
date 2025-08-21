@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
-    private val dao: BookDao
+    private val dao: BookDao,
+    var activity: MainActivity?
 ): ViewModel(){
     //Variable for the book
     private val _searchText = MutableStateFlow("")
@@ -47,7 +48,6 @@ class BookViewModel (
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BookState())
 
-
     //Event logic for book
     fun onEvent(event: BookEvent){
         when(event){
@@ -59,7 +59,15 @@ class BookViewModel (
             }
             BookEvent.HideDialog -> {
                 _state.update { it.copy(
-                    isAddingBook = false
+                    isAddingBook = false,
+                    isChangeBook = false,
+                    title = "",
+                    author = "",
+                    rating = -1,
+                    condition = 0,
+                    image = "",
+                    urllink = "",
+                    id = 0
                 ) }
             }
             BookEvent.SaveBook -> {
@@ -95,9 +103,41 @@ class BookViewModel (
                     )
                 }
 
-                viewModelScope.launch {
-                    dao.upsetBook(book)
-                }
+                if(urlLink != "##insert##")
+                    viewModelScope.launch {
+                        dao.upsetBook(book)
+                    }
+                else
+                    if(!title.isBlank()) {
+                        for(book in title.lines()){
+                            val a = book.split("#")
+                            var book2: Book
+                            if (a.size == 4){
+                                book2 = Book(
+                                    title = a[0],
+                                    author = a[1],
+                                    rating = rating,
+                                    condition = a[3].toInt(),
+                                    image = image,
+                                    urllink = a[2]
+                                )
+                            }
+                            else{
+                                book2 = Book(
+                                    title = a[0],
+                                    author = "",
+                                    rating = rating,
+                                    condition = a[2].toInt(),
+                                    image = image,
+                                    urllink = a[1]
+                                )
+                            }
+                            viewModelScope.launch {
+                                dao.upsetBook(book2)
+                            }
+                        }
+
+                    }
 
                 _state.update { it.copy(
                     isAddingBook = false,
@@ -137,9 +177,6 @@ class BookViewModel (
                 ) }
             }
             is BookEvent.SetImage -> {
-                _state.update { it.copy(
-                    image = event.image
-                ) }
             }
             BookEvent.ShowDialog -> {
                 _state.update { it.copy(
@@ -169,8 +206,14 @@ class BookViewModel (
                     id = event.changebook.id
                 ) }
             }
+            is BookEvent.LoadURL -> {
+                activity?.openUrl(event.url)
+            }
+            is BookEvent.Expandel ->{
+                _state.update { it.copy(
+                    isMenuExpand =  event.exand
+                ) }
+            }
         }
     }
-
-
 }

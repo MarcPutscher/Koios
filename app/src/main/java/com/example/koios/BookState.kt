@@ -13,5 +13,6 @@ data class BookState (
     val sortType: SortType = SortType.CONDITION,
     val isSearching: Boolean = false,
     val searchText:String = "",
-    val isChangeBook: Boolean = false
+    val isChangeBook: Boolean = false,
+    val isMenuExpand: Boolean = false
 )

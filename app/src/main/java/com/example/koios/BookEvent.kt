@@ -7,11 +7,13 @@ sealed interface BookEvent {
     data class  SetCondition(val condition: Int): BookEvent
     data class  SetRating(val rating: Int): BookEvent
     data class  SetURLLink(val urllink: String): BookEvent
-    data class  SetImage(val image: String): BookEvent
+    object  SetImage: BookEvent
     object ShowDialog: BookEvent
     object HideDialog: BookEvent
     data class SortBooks(val sortType: SortType): BookEvent
     data class DeleteBook(val book: Book): BookEvent
     data class ChangeBook(val changebook: Book): BookEvent
     data class  OnSearchTextChange(val searchText: String): BookEvent
+    data class LoadURL(val url: String): BookEvent
+    data class Expandel(val exand: Boolean): BookEvent
 }
