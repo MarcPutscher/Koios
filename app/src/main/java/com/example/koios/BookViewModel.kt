@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutionException
 
@@ -194,7 +195,14 @@ class BookViewModel (
         //insert a decoded string to the database
         if(urlLink == "##insert##")
         {
-            saveMany(book)
+            try {
+                insert(title)
+            }
+            catch (e: Exception)
+            {
+                Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+                return
+            }
             setStateToDefault()
             return
         }
@@ -202,18 +210,27 @@ class BookViewModel (
         //export a decoded file from the database
         if(urlLink == "##export##")
         {
-            exportDatabase()
+            try {
+                exportDatabase()
+            }
+            catch (e: Exception)
+            {
+                Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+                return
+            }
             setStateToDefault()
             return
         }
 
+        // Has some problems with the permission
         //import a decoded file to the database
-        if(urlLink == "##import##")
-        {
-            importDatabase()
-            setStateToDefault()
-            return
-        }
+//        if(urlLink == "##import##")
+//        {
+//            importDatabase()
+//            setStateToDefault()
+//            return
+//        }
+
         //delete all books from the database
         if(urlLink == "##delete##")
         {
@@ -233,33 +250,28 @@ class BookViewModel (
     }
 
     //save many books from a decoded string
-    fun saveMany(defaultBook: Book){
-        if(!defaultBook.title.isBlank()) {
-            for(book in defaultBook.title.lines()){
-                val a = book.split("#")
-                var book2: Book
-                if (a.size == 4){
-                    book2 = Book(
-                        title = a[0],
-                        author = a[1],
-                        rating = defaultBook.rating,
-                        condition = a[3].toInt(),
-                        image = defaultBook.image,
-                        urllink = a[2]
-                    )
+    fun insert(input: String){
+        if(!input.isBlank()) {
+            for(line in input.lines()){
+
+                val content = line.split("#")
+
+                if (content.size < 7){
+                    continue
                 }
-                else{
-                    book2 = Book(
-                        title = a[0],
-                        author = "",
-                        rating = defaultBook.rating,
-                        condition = a[2].toInt(),
-                        image = defaultBook.image,
-                        urllink = a[1]
-                    )
-                }
+
+                val book = Book(
+                    id = content[0].toInt(),
+                    title = content[1],
+                    author = content[2],
+                    urllink = content[3],
+                    image = content[4],
+                    rating = content[5].toInt(),
+                    condition = content[6].toInt()
+                )
+
                 viewModelScope.launch {
-                    dao.upsetBook(book2)
+                    dao.upsetBook(book)
                 }
             }
         }
@@ -289,8 +301,10 @@ class BookViewModel (
             }
         }
 
+        //set the permission
         file.setReadable(true)
         file.setWritable(true)
+
         //create the file
         file.createNewFile()
 
@@ -311,12 +325,17 @@ class BookViewModel (
 
         //read all lines from the file
         var data = emptyList<String>()
+
         try {
-            data = file.readLines()
+            //data = file.readLines()
+            FileInputStream(file).use{input->
+                val a = input.readAllBytes()
+            }
         }
-        catch (e: ExecutionException)
+        catch (e: Exception)
         {
             Toast.makeText(activity, "Somthing got wrong"+e.message, Toast.LENGTH_LONG).show()
+            return
         }
 
 

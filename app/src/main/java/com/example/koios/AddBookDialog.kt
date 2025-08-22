@@ -153,8 +153,8 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                             title = { Text(text = "internal commands") }
                         ) {
                             Text(text = "##delete## --> remove all books" +
-                                    "\n##insert## --> insert books with the decode pattern 'title#author#urlLink#condition(int)'\n" +
-                                    "##import## --> import all books from the Downloads folder in the 'KoiosBookList.txt' file with decode pattern 'id#title#author#urlLink#image#rating(int)#condition(int)'\n" +
+                                    "\n##insert## --> insert books in 'Titel' with the pattern 'id(int)#title(string)#author(string)#urlLink(string)#image#(string)rating(int)#condition(int)'\n" +
+                                    //"##import## --> import all books from the Downloads folder in the 'KoiosBookList.txt' file with decode pattern 'id#title#author#urlLink#image#rating(int)#condition(int)'\n" +
                                     "##export## --> export all books to the file 'KoiosBookList.txt' in the folder Downloads with the same pattern as import")
                         }
                     },

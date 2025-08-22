@@ -41,10 +41,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        ActivityCompat.requestPermissions(this,
-            arrayOf(READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO),
-            PackageManager.GET_PERMISSIONS
-        )
+//        ActivityCompat.requestPermissions(this,
+//            arrayOf(READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO,
+//                Manifest.permission.MANAGE_EXTERNAL_STORAGE),
+//            PackageManager.GET_PERMISSIONS
+//        )
 
         setContent {
             KoiosTheme {
