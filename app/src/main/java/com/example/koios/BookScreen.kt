@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -339,12 +340,14 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                     .fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
-            ){
+            )
+            {
                 SortType.entries.forEach { sortType ->
                     Row (
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(start = 10.dp)
-                    ){
+                    )
+                    {
                         //set the color of icon
                         var iconColor = androidx.compose.ui.graphics.Color(Color.DKGRAY)
                         if(state.sortType == sortType)
@@ -359,6 +362,8 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                             FilterItem(Icons.Default.Star,iconColor,"Rating Filter",onEvent,sortType)
                         if(sortType == SortType.CONDITION)
                             FilterItem(Icons.Default.Info,iconColor,"Condition Filter",onEvent,sortType)
+                        if(sortType == SortType.ID)
+                            FilterItem(Icons.Default.DateRange,iconColor,"ID Filter",onEvent,sortType)
                     }
                 }
             }

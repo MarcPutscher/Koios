@@ -26,4 +26,7 @@ interface BookDao {
 
     @Query("SELECT * FROM book ORDER BY rating DESC")
     fun getBooksOrderedByRating(): Flow<List<Book>>
+
+    @Query("SELECT * FROM book ORDER BY id ASC")
+    fun getBooksOrderedById(): Flow<List<Book>>
 }

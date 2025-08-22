@@ -41,6 +41,7 @@ class BookViewModel (
                 SortType.AUTHOR -> dao.getBooksOrderedByAuthor()
                 SortType.RATING -> dao.getBooksOrderedByRating()
                 SortType.CONDITION -> dao.getBooksOrderedByCondition()
+                SortType.ID -> dao.getBooksOrderedById()
             }
         }
         .combine(searchText){ book, text ->
