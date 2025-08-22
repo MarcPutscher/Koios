@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.util.concurrent.ExecutionException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
@@ -324,7 +323,7 @@ class BookViewModel (
         }
 
         //read all lines from the file
-        var data = emptyList<String>()
+        val data = emptyList<String>()
 
         try {
             //data = file.readLines()
