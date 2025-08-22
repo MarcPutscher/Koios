@@ -4,6 +4,8 @@ import android.Manifest.permission.READ_MEDIA_IMAGES
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.storage.StorageManager
+import android.os.storage.StorageVolume
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge

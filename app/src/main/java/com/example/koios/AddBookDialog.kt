@@ -27,13 +27,18 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +54,7 @@ import com.example.koios.ui.theme.Darkgrey
 import com.example.koios.ui.theme.LightBlue
 import com.example.koios.ui.theme.LightWithe
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
@@ -138,44 +144,61 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     },
                 )
 
-                //text input of urlLink
-                TextField(
-                    value = state.urlLink,
-                    onValueChange = {
-                        onEvent(BookEvent.SetURLLink(it))
+                //text input of urlLink and access point for commands
+                TooltipBox(
+                    modifier = modifier,
+                    positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
+                    tooltip = {
+                        RichTooltip(
+                            title = { Text(text = "internal commands") }
+                        ) {
+                            Text(text = "##delete## --> remove all books" +
+                                    "\n##insert## --> insert books with the decode pattern 'title#author#urlLink#condition(int)'\n" +
+                                    "##import## --> import all books from the Downloads folder in the 'KoiosBookList.txt' file with decode pattern 'id#title#author#urlLink#image#rating(int)#condition(int)'\n" +
+                                    "##export## --> export all books to the file 'KoiosBookList.txt' in the folder Downloads with the same pattern as import")
+                        }
                     },
-                    placeholder = {
-                        Text(text = "URL", color = Color.Gray,fontWeight = FontWeight.Bold)
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                        unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.ShoppingCart,
-                            tint = androidx.compose.ui.graphics.Color.Gray,
-                            contentDescription = ""
-                        )
-                    },
-                    trailingIcon = {
-                        // if the searchText is not blank then show the clear button
-                        if(!state.urlLink.isBlank())
-                            IconButton(
-                                onClick = {
-                                    onEvent(BookEvent.SetURLLink(""))
-                                }
+                    state = rememberTooltipState()
+                ) {
+                    TextField(
+                        value = state.urlLink,
+                        onValueChange = {
+                            onEvent(BookEvent.SetURLLink(it))
+                        },
+                        placeholder = {
+                            Text(text = "URL", color = Color.Gray,fontWeight = FontWeight.Bold)
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                            unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.ShoppingCart,
+                                tint = androidx.compose.ui.graphics.Color.Gray,
+                                contentDescription = ""
                             )
-                            {
-                                Icon(
-                                    imageVector = Icons.Rounded.Clear,
-                                    tint = androidx.compose.ui.graphics.Color.Gray,
-                                    contentDescription = ""
+                        },
+                        trailingIcon = {
+                            // if the searchText is not blank then show the clear button
+                            if(!state.urlLink.isBlank())
+                                IconButton(
+                                    onClick = {
+                                        onEvent(BookEvent.SetURLLink(""))
+                                    }
                                 )
-                            }
-                    },
-                )
+                                {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Clear,
+                                        tint = androidx.compose.ui.graphics.Color.Gray,
+                                        contentDescription = ""
+                                    )
+                                }
+                        },
+                    )
+                }
+
 
                 Spacer(Modifier.height(5.dp))
 

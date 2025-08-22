@@ -1,5 +1,10 @@
 package com.example.koios
 
+import android.os.Environment
+import android.os.storage.StorageManager
+import android.os.storage.StorageVolume
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -11,6 +16,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import kotlin.coroutines.coroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
@@ -135,6 +144,8 @@ class BookViewModel (
             }
         }
     }
+
+    //set the state values to default
     fun setStateToDefault()
     {
         _state.update { it.copy(
@@ -149,7 +160,10 @@ class BookViewModel (
             id = 0
         ) }
     }
+
+    //save the book from the current state in the database and execute some commands
     fun save(){
+
         val title = state.value.title
         val author = state.value.author
         val rating = state.value.rating
@@ -157,9 +171,6 @@ class BookViewModel (
         val image = state.value.image
         val urlLink = state.value.urlLink
 
-        if (title.isBlank()){
-            return
-        }
         var book = Book(
             title = title,
             author = author,
@@ -182,15 +193,49 @@ class BookViewModel (
             )
         }
 
-        if(urlLink != "##insert##")
-            viewModelScope.launch {
-                dao.upsetBook(book)
-            }
-        else
+        //execute commands
+        //insert a decoded string to the database
+        if(urlLink == "##insert##")
+        {
             saveMany(book)
+            setStateToDefault()
+            return
+        }
 
+        //export a decoded file from the database
+        if(urlLink == "##export##")
+        {
+            exportDatabase()
+            setStateToDefault()
+            return
+        }
+
+        //import a decoded file to the database
+        if(urlLink == "##import##")
+        {
+            importDatabase()
+            setStateToDefault()
+            return
+        }
+        //delete all books from the database
+        if(urlLink == "##delete##")
+        {
+            deleteAll()
+            setStateToDefault()
+            return
+        }
+
+        if (title.isBlank()){
+            return
+        }
+
+        viewModelScope.launch {
+            dao.upsetBook(book)
+        }
         setStateToDefault()
     }
+
+    //save many books from a decoded string
     fun saveMany(defaultBook: Book){
         if(!defaultBook.title.isBlank()) {
             for(book in defaultBook.title.lines()){
@@ -220,7 +265,83 @@ class BookViewModel (
                     dao.upsetBook(book2)
                 }
             }
-
         }
     }
+
+    //export the current database to a external text file
+    fun exportDatabase()
+    {
+        // decode the database
+        val lines = ArrayList<String>()
+        val separate = "#"
+        onEvent(BookEvent.OnSearchTextChange(""))
+        for(book in _books.value){
+
+            val line = book.id.toString()+separate+book.title+separate+book.author+separate+book.urllink+separate+book.image+separate+book.rating.toString()+separate+book.condition.toString()
+            lines += line
+        }
+
+
+        // set the file
+        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"KoiosBookList.txt")
+
+        //write the file
+        FileOutputStream(file).use { outputStream ->
+            lines.forEach {
+                outputStream.write("$it\n".encodeToByteArray())
+            }
+        }
+
+        //create the file
+        file.createNewFile()
+
+        Toast.makeText(activity, "Books are saved in Downloads as KoiosBookList.txt", Toast.LENGTH_LONG).show()
+    }
+
+    //import books to the current database from a external text file
+    fun importDatabase()
+    {
+        // set the file
+        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"KoiosBookList.txt")
+
+        if(!file.exists())
+        {
+            Toast.makeText(activity, "There is not file (KoiosBookList.txt) in Downloads", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val data = file.readLines()
+
+
+        // encode the file
+        for(line in data){
+
+            val content = line.split("#")
+            val book = Book(
+                id = content[0].toInt(),
+                title = content[1],
+                author = content[2],
+                urllink = content[3],
+                image = content[4],
+                rating = content[5].toInt(),
+                condition = content[6].toInt()
+            )
+
+            viewModelScope.launch {
+                dao.upsetBook(book)
+            }
+        }
+
+        Toast.makeText(activity, "Books are successful imported", Toast.LENGTH_LONG).show()
+    }
+
+    //delete all books from the database
+    fun deleteAll(){
+        onEvent(BookEvent.OnSearchTextChange(""))
+        for(book in _books.value)
+        {
+            onEvent(BookEvent.DeleteBook(book))
+        }
+    }
+
 }
