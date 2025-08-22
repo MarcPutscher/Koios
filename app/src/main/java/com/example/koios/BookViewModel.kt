@@ -1,9 +1,6 @@
 package com.example.koios
 
 import android.os.Environment
-import android.os.storage.StorageManager
-import android.os.storage.StorageVolume
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,9 +14,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
-import kotlin.coroutines.coroutineContext
+import java.util.concurrent.ExecutionException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
@@ -293,6 +289,8 @@ class BookViewModel (
             }
         }
 
+        file.setReadable(true)
+        file.setWritable(true)
         //create the file
         file.createNewFile()
 
@@ -311,7 +309,16 @@ class BookViewModel (
             return
         }
 
-        val data = file.readLines()
+        //read all lines from the file
+        var data = emptyList<String>()
+        try {
+            data = file.readLines()
+        }
+        catch (e: ExecutionException)
+        {
+            Toast.makeText(activity, "Somthing got wrong"+e.message, Toast.LENGTH_LONG).show()
+        }
+
 
 
         // encode the file

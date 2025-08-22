@@ -1,5 +1,6 @@
 package com.example.koios
 
+import android.Manifest
 import android.Manifest.permission.READ_MEDIA_IMAGES
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
@@ -43,12 +45,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        //TODO get Permission for read in external storage
         ActivityCompat.requestPermissions(this,
-            arrayOf(READ_MEDIA_IMAGES),
-            PackageManager.PERMISSION_GRANTED
+            arrayOf(READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO),
+            PackageManager.GET_PERMISSIONS
         )
-        registerForActivityResult(ActivityResultContracts.PickVisualMedia()){url->
-        }
+
         setContent {
             KoiosTheme {
                 val state by viewModel.state.collectAsState()
