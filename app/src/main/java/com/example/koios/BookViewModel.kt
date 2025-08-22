@@ -252,25 +252,27 @@ class BookViewModel (
     fun insert(input: String){
         if(!input.isBlank()) {
             for(line in input.lines()){
+                try {
+                    val content = line.split("#")
 
-                val content = line.split("#")
+                    val book = Book(
+                        id = content[0].toInt(),
+                        title = content[1],
+                        author = content[2],
+                        urllink = content[3],
+                        image = content[4],
+                        rating = content[5].toInt(),
+                        condition = content[6].toInt()
+                    )
 
-                if (content.size < 7){
-                    continue
+                    viewModelScope.launch {
+                        dao.upsetBook(book)
+                    }
                 }
-
-                val book = Book(
-                    id = content[0].toInt(),
-                    title = content[1],
-                    author = content[2],
-                    urllink = content[3],
-                    image = content[4],
-                    rating = content[5].toInt(),
-                    condition = content[6].toInt()
-                )
-
-                viewModelScope.launch {
-                    dao.upsetBook(book)
+                catch (e: Exception)
+                {
+                    Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+                    continue
                 }
             }
         }
