@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,11 +55,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
 import com.example.koios.ui.theme.Beige
 import com.example.koios.ui.theme.DarkRed
 import com.example.koios.ui.theme.Darkbeige
@@ -67,10 +72,12 @@ import com.example.koios.ui.theme.Green
 import com.example.koios.ui.theme.LightBlue
 import com.example.koios.ui.theme.LightWithe
 import com.example.koios.ui.theme.MiddeBlue
+import com.example.koios.ui.theme.Purple
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit,){
+fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
     //Variable for the scroll to top function
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -114,6 +121,17 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit,){
             AddBookDialog(state = state, onEvent = onEvent)
         }
 
+        //zooming the image
+        if(state.isZooming)
+        {
+            ImageDialog(state = state, onEvent = onEvent)
+        }
+
+        if(state.isLoading)
+        {
+            CircularProgressIndicator(
+            )
+        }
         //layout for the taskbar and the main list
         Column (
             modifier = Modifier
@@ -137,9 +155,10 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit,){
                         .padding(0.dp,50.dp,0.dp,0.dp)
                     )
 
+
             //main list where the books are displayed
             LazyColumn(
-                state = listState
+            state = listState,
             )
             {
                 items(state.books){ book ->
@@ -203,7 +222,11 @@ fun FilterItem(icon: ImageVector, color: androidx.compose.ui.graphics.Color, des
         modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SortBooks(sortType)) }))
 }
 @Composable
-fun BookStatTemplate(text:String,icon: ImageVector,description: String){
+fun BookStatTemplate(text:String,icon: ImageVector,description: String,searchMatch: Int = 0){
+    var backgroundColor = Transparent
+    if (searchMatch == 1)
+        backgroundColor = Purple
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -214,7 +237,9 @@ fun BookStatTemplate(text:String,icon: ImageVector,description: String){
         Text(
             text = text,
             modifier = Modifier
-                .padding(5.dp,0.dp),
+                .padding(5.dp,0.dp)
+                .background(color = backgroundColor, shape = RoundedCornerShape(5.dp))
+                .padding(2.dp),
             color = Darkgrey,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black
@@ -250,7 +275,7 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
         //taskbar
         Box(
             modifier = Modifier
-                .background(color = androidx.compose.ui.graphics.Color.Transparent)
+                .background(color = Transparent)
                 .padding(15.dp,15.dp,15.dp,0.dp)
         )
         {
@@ -296,7 +321,7 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                     .fillMaxWidth()
                     .padding(0.dp),
                 colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent, focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent),
+                    unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
 
                 )
         }
@@ -393,21 +418,31 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
             .padding(12.dp)
             .background(color = Darkblue),
         shape = RoundedCornerShape(0.dp),
-    ) {
+    )
+    {
         Column(
             modifier = Modifier
                 .background(color = Darkblue),
         )
         {
             //title
+            var backgroundColor = Transparent
+            var textColor = Darkbeige
+            if (book.titleMatch == 1)
+            {
+                backgroundColor = Purple
+                textColor = Darkgrey
+            }
             Text(
                 text = book.title,
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
                     .align(alignment = Alignment.Start)
                     .fillMaxWidth()
-                    .padding(start = 10.dp, bottom = 5.dp),
-                color = Darkbeige,
+                    .padding(start = 10.dp, bottom = 5.dp)
+                    .background(color = backgroundColor, shape = RoundedCornerShape(5.dp))
+                    .padding(2.dp),
+                color = textColor,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Black
             )
@@ -435,14 +470,58 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
                 {
 
                     //the image of the book
-                    Image(
+                    if(!book.image.isBlank()){
+                        SubcomposeAsyncImage(
+                            model = book.imagePath,
+                            contentDescription = null,
+                            contentScale = ContentScale.FillHeight,
+                            modifier = Modifier
+                                .width(70.dp)
+                                .height(80.dp)
+                                .padding(start = 20.dp,10.dp,10.dp,10.dp)
+                                .clickable(
+                                    onClick = {
+                                        onEvent(BookEvent.SetImage(book.imagePath))
+                                        onEvent(BookEvent.ZoomImage)
+                                    }
+                                ),
+                            error = {
+                                SubcomposeAsyncImage(
+                                    model = book.image,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillHeight,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable(
+                                            onClick = {
+                                                onEvent(BookEvent.SetImage(book.image))
+                                                onEvent(BookEvent.ZoomImage)
+                                            }
+                                        ),
+                                    error = {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.book),
+                                            contentDescription = "Photo of Book",
+                                            modifier = Modifier
+                                                .width(100.dp)
+                                                .height(80.dp)
+                                                .padding(0.dp)
+                                        )
+                                    }
+                                )
+                            }
+                        )
+                    }
+                    else{
+                        Image(
                         painter = painterResource(id = R.drawable.book),
                         contentDescription = "Photo of Book",
                         modifier = Modifier
                             .width(100.dp)
                             .height(70.dp)
                             .padding(10.dp)
-                    )
+                        )
+                    }
 
                     //the other stats of the book
                     Column(
@@ -452,7 +531,7 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
 
                         //if the author of the book is given then display it
                         if(!book.author.isBlank()) {
-                            BookStatTemplate(book.author,Icons.Default.Person,"Author of the book")
+                            BookStatTemplate(book.author,Icons.Default.Person,"Author of the book",book.authorMatch)
                         }
 
                         Row {
@@ -473,7 +552,7 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
             if(expanded)
                 Box(
                     modifier = Modifier
-                        .padding(end = 20.dp, bottom = 0.dp, top = 5.dp)
+                        .padding(end = 20.dp, bottom = 0.dp, top = 10.dp)
                         .align(Alignment.End),
                 )
                 {

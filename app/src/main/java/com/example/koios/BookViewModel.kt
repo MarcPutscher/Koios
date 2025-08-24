@@ -14,15 +14,22 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
     //Access Point to the database
     private val dao: BookDao,
     //Traceback to the MainActivity
-    var activity: MainActivity?
+    var activity: MainActivity?,
+    var downloader: Downloader?
 ): ViewModel(){
 
     //Variable for the booklist
@@ -41,6 +48,7 @@ class BookViewModel (
             }
         }
         .combine(searchText){ book, text ->
+            book.forEach { it.removeMarks() }
             if(text.isBlank()){
                 book
             }else{
@@ -59,6 +67,7 @@ class BookViewModel (
             sortType = sortType
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BookState())
+
 
 
     //Event logic
@@ -90,6 +99,9 @@ class BookViewModel (
                 ) }
             }
             is BookEvent.SetImage -> {
+                _state.update { it.copy(
+                    image = event.image
+                ) }
             }
 
             is BookEvent.HideDialog -> {
@@ -105,9 +117,12 @@ class BookViewModel (
             }
             is BookEvent.DeleteBook -> {
                 viewModelScope.launch {
+                    //delete the image from the file
+                    if(File(event.book.imagePath).exists())
+                        File(event.book.imagePath).delete()
+
                     dao.deleteBool(event.book)
                 }
-
             }
             is BookEvent.SaveBook -> {
                 save()
@@ -116,13 +131,16 @@ class BookViewModel (
                 _state.update { it.copy(
                     isAddingBook = false,
                     isChangeBook = true,
+                    isZooming = false,
                     title = event.changebook.title,
                     author = event.changebook.author,
                     rating = event.changebook.rating,
                     condition = event.changebook.condition,
                     image = event.changebook.image,
                     urlLink = event.changebook.urllink,
-                    id = event.changebook.id
+                    id = event.changebook.id,
+                    currentimage = event.changebook.currentimage,
+                    imagePath = event.changebook.imagePath
                 ) }
             }
             is BookEvent.OnSearchTextChange ->{
@@ -134,10 +152,36 @@ class BookViewModel (
             is BookEvent.LoadURL -> {
                 activity?.openUrl(event.url)
             }
-            is BookEvent.Expandel ->{
+            is BookEvent.GenearteImage ->{
+                if(state.value.title.isBlank())
+                    return
+
+                viewModelScope.launch {
+                    val imageUrl : List<String> = getImage(state.value.title, state.value.author,true)
+
+                    if (!imageUrl.isEmpty())
+                        _state.update { it.copy(
+                            imageOption = imageUrl,
+                            isImageChoose = true
+                        ) }
+                }
+
+            }
+            is BookEvent.ZoomImage -> {
                 _state.update { it.copy(
-                    isMenuExpand =  event.exand
+                    isZooming = true
                 ) }
+            }
+            is BookEvent.EndZoomImage -> {
+                _state.update { it.copy(
+                    isZooming = false
+                ) }
+            }
+            is BookEvent.ImageSelected ->{
+                _state.update { it.copy(
+                    isImageChoose = false
+                ) }
+                onEvent(BookEvent.SetImage(event.image))
             }
         }
     }
@@ -146,6 +190,7 @@ class BookViewModel (
     fun setStateToDefault()
     {
         _state.update { it.copy(
+            isZooming = false,
             isAddingBook = false,
             isChangeBook = false,
             title = "",
@@ -154,7 +199,11 @@ class BookViewModel (
             condition = 0,
             image = "",
             urlLink = "",
-            id = 0
+            id = 0,
+            isImageChoose = false,
+            currentimage = "",
+            imagePath = "",
+            imageOption = emptyList()
         ) }
     }
 
@@ -167,6 +216,8 @@ class BookViewModel (
         val condition = state.value.condition
         val image = state.value.image
         val urlLink = state.value.urlLink
+        val currentimgae = state.value.currentimage
+        val imagePath = state.value.imagePath
 
         var book = Book(
             title = title,
@@ -174,7 +225,9 @@ class BookViewModel (
             rating = rating,
             condition = condition,
             image = image,
-            urllink = urlLink
+            urllink = urlLink,
+            currentimage = currentimgae,
+            imagePath = imagePath
         )
 
         if(state.value.isChangeBook)
@@ -186,7 +239,9 @@ class BookViewModel (
                 rating = rating,
                 condition = condition,
                 image = image,
-                urllink = urlLink
+                urllink = urlLink,
+                currentimage = currentimgae,
+                imagePath = imagePath
             )
         }
 
@@ -221,15 +276,6 @@ class BookViewModel (
             return
         }
 
-        // Has some problems with the permission
-        //import a decoded file to the database
-//        if(urlLink == "##import##")
-//        {
-//            importDatabase()
-//            setStateToDefault()
-//            return
-//        }
-
         //delete all books from the database
         if(urlLink == "##delete##")
         {
@@ -238,18 +284,29 @@ class BookViewModel (
             return
         }
 
-        if (title.isBlank()){
+        //try to set the images from the books in the database
+        if(urlLink == "##image##")
+        {
+            getImageAll()
+            setStateToDefault()
             return
         }
 
+        if (title.isBlank())
+            return
+
         viewModelScope.launch {
+
+            storeImage(book)
+
             dao.upsetBook(book)
         }
         setStateToDefault()
     }
 
     //save many books from a decoded string
-    fun insert(input: String){
+    fun insert(input: String)
+    {
         if(!input.isBlank()) {
             for(line in input.lines()){
                 try {
@@ -281,6 +338,10 @@ class BookViewModel (
     //export the current database to a external text file
     fun exportDatabase()
     {
+        _state.update { it.copy(
+            isLoading = true
+        ) }
+
         // decode the database
         val lines = ArrayList<String>()
         val separate = "#"
@@ -291,9 +352,13 @@ class BookViewModel (
             lines += line
         }
 
+        //set file directory
+        val filedir:String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/Koios"
+        if(!File(filedir).exists())
+            File(filedir).mkdir()
 
         // set the file
-        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"KoiosBookList.txt")
+        val file = File(filedir,"KoiosBookList.txt")
 
         //write the file
         FileOutputStream(file).use { outputStream ->
@@ -309,67 +374,275 @@ class BookViewModel (
         //create the file
         file.createNewFile()
 
-        Toast.makeText(activity, "Books are saved in Downloads as KoiosBookList.txt", Toast.LENGTH_LONG).show()
-    }
+        Toast.makeText(activity, "Books are saved in Downloads/Koios as KoiosBookList.txt", Toast.LENGTH_LONG).show()
 
-    //import books to the current database from a external text file
-    fun importDatabase()
-    {
-        // set the file
-        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"KoiosBookList.txt")
-
-        if(!file.exists())
-        {
-            Toast.makeText(activity, "There is not file (KoiosBookList.txt) in Downloads", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        //read all lines from the file
-        val data = emptyList<String>()
-
-        try {
-            //data = file.readLines()
-            FileInputStream(file).use{input->
-                val a = input.readAllBytes()
-            }
-        }
-        catch (e: Exception)
-        {
-            Toast.makeText(activity, "Somthing got wrong"+e.message, Toast.LENGTH_LONG).show()
-            return
-        }
-
-
-
-        // encode the file
-        for(line in data){
-
-            val content = line.split("#")
-            val book = Book(
-                id = content[0].toInt(),
-                title = content[1],
-                author = content[2],
-                urllink = content[3],
-                image = content[4],
-                rating = content[5].toInt(),
-                condition = content[6].toInt()
-            )
-
-            viewModelScope.launch {
-                dao.upsetBook(book)
-            }
-        }
-
-        Toast.makeText(activity, "Books are successful imported", Toast.LENGTH_LONG).show()
+        _state.update { it.copy(
+            isLoading = false
+        ) }
     }
 
     //delete all books from the database
     fun deleteAll(){
+        _state.update { it.copy(
+            isLoading = true
+        ) }
         onEvent(BookEvent.OnSearchTextChange(""))
         for(book in _books.value)
         {
             onEvent(BookEvent.DeleteBook(book))
         }
+        _state.update { it.copy(
+            isLoading = false
+        ) }
     }
 
+    //try to set the images from the books in the database
+    fun getImageAll()
+    {
+        viewModelScope.launch {
+
+            _state.update { it.copy(
+                isLoading = true
+            ) }
+
+            for(book in _books.value)
+            {
+
+                if(book.image == "null")
+                    book.image = ""
+
+                if(!book.image.isBlank() or book.title.isBlank())
+                    continue
+
+                val imageUrls = getImage(book.title, book.author)
+
+                if(!imageUrls.isEmpty())
+                    book.image = imageUrls.first{url-> !url.isBlank()}
+
+                if(book.image == "null")
+                    book.image = ""
+
+                storeImage(book)
+
+                dao.upsetBook(book)
+            }
+            _state.update { it.copy(
+                isLoading = false
+            ) }
+        }
+    }
+
+    //store the image on device
+    fun storeImage(book: Book)
+    {
+        if(book.image == book.currentimage)
+            return
+
+        if(!book.image.isBlank())
+        {
+            if(!book.imagePath.isBlank() and File(book.imagePath).exists()){
+                File(book.imagePath).delete()
+            }
+            val dirname = "Koios/Image/${book.title}${book.author}"
+            val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path + "/"+dirname
+            downloader?.downloadFile(book.image,book.title,dirname)
+            book.imagePath = dirpath+"/image.jpg"
+            book.currentimage = book.image
+        }
+        book.currentimage = book.image
+    }
+
+    //get an image url from the internet with the title and the author as buzzwords
+    suspend fun getImage(title:String, author:String,moreImage: Boolean = false): List<String> {
+        val client = OkHttpClient()
+
+        val imageUrls: MutableList<String> = mutableListOf()
+
+        try {
+            if(!moreImage)
+            {
+                val url = findBookCoverUrl(client, title,author)
+                if(url != null)
+                    imageUrls.add(url)
+            }
+            else{
+                val urls = findBookCoverUrls(client,title,author)
+                imageUrls.addAll(urls.filter { it != "null" })
+            }
+        }
+        catch (e: Exception){
+            e.message
+        }
+
+        try {
+
+            val imageUrl = findGoogleBookCoverUrl(client,title,author).toString()
+            imageUrls.add( imageUrl.replace("http://", "https://"))
+        }
+        catch (e: Exception){
+            e.message
+        }
+
+        if(imageUrls.all { it == "" })
+        {
+            Toast.makeText(activity, "No image found\nfor $title", Toast.LENGTH_LONG).show()
+            return emptyList()
+        }
+
+        return imageUrls
+    }
+
+    // serialize the body of the internet page
+    @Serializable
+    data class OpenLibrarySearchResponse(
+        val docs: List<Doc>
+    )
+    {
+        @Serializable
+        data class Doc(
+            @SerialName("cover_i")
+            val coverId: Int? = null,
+            val title: String? = null,
+            val authorName: List<String>? = null
+        )
+    }
+
+    // Helper extension to URL-encode query parameters
+    fun String.encodeUrl(): String = java.net.URLEncoder.encode(this, "UTF-8")
+
+    //fetch a url from openlibrary.org
+    suspend fun findBookCoverUrl(client: OkHttpClient, title: String, author: String): String? = withContext(
+        Dispatchers.IO)
+    {
+        var url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&author=${author.encodeUrl()}&limit=5"
+        if(author.isBlank())
+            url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&limit=5"
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("HTTP request failed with code ${response.code}")
+                return@withContext ""
+            }
+
+            val body = response.body?.string() ?: return@withContext ""
+
+            val json = Json { ignoreUnknownKeys = true }
+            val searchResponse = try {
+                json.decodeFromString<OpenLibrarySearchResponse>(body)
+            } catch (e: Exception) {
+                println("JSON parsing failed: ${e.message}")
+                return@withContext ""
+            }
+
+            // Same logic as before...
+            val matchingDoc = searchResponse.docs.find {
+                it.coverId != null &&
+                        it.title?.equals(title, ignoreCase = true) == true &&
+                        it.authorName?.any { author1 -> author1.equals(author, ignoreCase = true) } == true
+            }
+            val docToUse = matchingDoc ?: searchResponse.docs.firstOrNull { it.coverId != null }
+
+            return@withContext docToUse?.coverId?.let { coverId ->
+                "https://covers.openlibrary.org/b/id/$coverId-L.jpg"
+            }
+        }
+    }
+    suspend fun findBookCoverUrls(client: OkHttpClient, title: String, author: String): List<String> = withContext(
+        Dispatchers.IO)
+    {
+        var url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&author=${author.encodeUrl()}&limit=10"
+        if(author.isBlank())
+            url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&limit=10"
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("HTTP request failed with code ${response.code}")
+                return@withContext emptyList()
+            }
+
+            val body = response.body?.string() ?: return@withContext emptyList()
+
+            val json = Json { ignoreUnknownKeys = true }
+            val searchResponse = try {
+                json.decodeFromString<OpenLibrarySearchResponse>(body)
+            } catch (e: Exception) {
+                println("JSON parsing failed: ${e.message}")
+                return@withContext emptyList()
+            }
+
+            val resutl = searchResponse.docs.filter { it.coverId != null }.map { it.coverId }.map { "https://covers.openlibrary.org/b/id/$it-L.jpg" }
+
+            return@withContext resutl
+        }
+    }
+
+    @Serializable
+    data class GoogleBooksResponse(
+        val items: List<Item>? = null
+    )
+    {
+
+        @Serializable
+        data class Item(
+            val volumeInfo: VolumeInfo? = null
+        )
+
+        @Serializable
+        data class VolumeInfo(
+            val title: String? = null,
+            val authors: List<String>? = null,
+            val imageLinks: ImageLinks? = null
+        )
+
+        @Serializable
+        data class ImageLinks(
+            @SerialName("smallThumbnail") val smallThumbnail: String? = null,
+            val thumbnail: String? = null,
+            val small: String? = null,
+            val medium: String? = null,
+            val large: String? = null,
+            val extraLarge: String? = null
+        )
+    }
+
+    suspend fun findGoogleBookCoverUrl(client: OkHttpClient, title: String, author: String): String? = withContext(
+            Dispatchers.IO)
+    {
+        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+        val encodedAuthor = java.net.URLEncoder.encode(author, "UTF-8")
+        val url = "https://www.googleapis.com/books/v1/volumes?q=intitle:$encodedTitle+inauthor:$encodedAuthor&maxResults=5"
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("Google Books API call failed: ${response.code}")
+                return@withContext ""
+            }
+
+            val body = response.body?.string() ?: return@withContext ""
+
+            val json = Json { ignoreUnknownKeys = true }
+            val booksResponse = json.decodeFromString<GoogleBooksResponse>(body)
+
+            // Try to find a fit with imageLinks
+            val item = booksResponse.items?.firstOrNull { it.volumeInfo?.imageLinks != null }
+
+            // Return thumbnail or any available image URL
+            var result = item?.volumeInfo?.imageLinks?.thumbnail
+                ?: item?.volumeInfo?.imageLinks?.smallThumbnail
+
+            if(result == null)
+                result = ""
+            return@withContext result
+        }
+    }
 }

@@ -1,11 +1,6 @@
 package com.example.koios.ui.theme
 
 import androidx.compose.ui.graphics.Color
-
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
@@ -25,3 +20,4 @@ val MiddeBlue = Color(android.graphics.Color.rgb(54, 73, 117))
 val LightWithe = Color(android.graphics.Color.rgb(199, 204, 211))
 val DarkRed = Color(android.graphics.Color.rgb(165, 91, 75))
 val Green = Color(android.graphics.Color.rgb(0,139,0))
+val Purple = Color(android.graphics.Color.rgb(126,	121,	148))

@@ -1,0 +1,32 @@
+package com.example.koios
+
+import android.app.DownloadManager
+import android.content.Context
+import android.os.Environment
+import androidx.core.net.toUri
+import java.io.File
+
+class AndroidDownloader(
+    private val context: Context
+): Downloader {
+    private val downloadManger = context.getSystemService(DownloadManager::class.java)
+
+    override fun downloadFile(url: String, name: String, dir:String): Long{
+        //set file directory
+        val filedir:String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/Koios/Image"
+        if(!File(filedir).exists())
+            File(filedir).mkdir()
+
+        val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/"+dir
+        if(!File(dirpath).exists())
+            File(dirpath).mkdir()
+
+        val request = DownloadManager.Request(url.toUri())
+            .setMimeType("image/jpg")
+            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setTitle("$name.jpg")
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,dir+"/image.jpg")
+        return downloadManger.enqueue(request)
+    }
+}

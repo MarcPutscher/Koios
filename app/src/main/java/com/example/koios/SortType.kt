@@ -5,6 +5,5 @@ enum class SortType {
     AUTHOR,
     RATING,
     CONDITION,
-
     ID
 }

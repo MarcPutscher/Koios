@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -38,11 +39,21 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Transparent
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
 import com.example.koios.ui.theme.Darkbeige
 import com.example.koios.ui.theme.Darkgrey
 import com.example.koios.ui.theme.LightBlue
@@ -56,6 +67,15 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
         containerColor = Darkgrey,
         title = {Title(state)},
         text = {
+
+            //zooming the image
+            if(state.isZooming)
+                ImageDialog(state = state, onEvent = onEvent)
+
+            //choose an image Url
+            if(state.isImageChoose)
+                ChooseImageDialog(state = state, onEvent = onEvent)
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             )
@@ -72,7 +92,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                        unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                        unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(
@@ -111,7 +131,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                        unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                        unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(
@@ -138,6 +158,50 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     },
                 )
 
+                //text input of image
+                TextField(
+                    value = state.image,
+                    onValueChange = {
+                        onEvent(BookEvent.SetImage(it))
+                    },
+                    placeholder = {
+                        Text(text = "Image", color = Color.Gray,fontWeight = FontWeight.Bold)
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                        unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Image(
+                            painter = painterResource(R.drawable.book),
+                            contentDescription = "",
+                            colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
+                            modifier = Modifier.clickable(
+                                onClick = {
+                                    onEvent(BookEvent.GenearteImage)
+                                }
+                            )
+                        )
+                    },
+                    trailingIcon = {
+                        // if the searchText is not blank then show the clear button
+                        if(!state.image.isBlank())
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.SetImage(""))
+                                }
+                            )
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    tint = Color.Gray,
+                                    contentDescription = ""
+                                )
+                            }
+                    },
+                )
+
                 //text input of urlLink and access point for commands
                 TooltipBox(
                     modifier = modifier,
@@ -149,7 +213,8 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                             Text(text = "##delete## --> remove all books" +
                                     "\n##insert## --> insert books in 'Titel' with the pattern 'id(int)#title(string)#author(string)#urlLink(string)#image#(string)rating(int)#condition(int)'\n" +
                                     //"##import## --> import all books from the Downloads folder in the 'KoiosBookList.txt' file with decode pattern 'id#title#author#urlLink#image#rating(int)#condition(int)'\n" +
-                                    "##export## --> export all books to the file 'KoiosBookList.txt' in the folder Downloads with the same pattern as import")
+                                    "##export## --> export all books to the file 'KoiosBookList.txt' in the folder Downloads with the same pattern as import\n" +
+                                    "##image## -->try to set the images fro every book in the database")
                         }
                     },
                     state = rememberTooltipState()
@@ -165,7 +230,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                         shape = RoundedCornerShape(20.dp),
                         singleLine = true,
                         colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
-                            unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                            unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
                             Icon(
@@ -286,21 +351,45 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
 
                     //image of the book
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = {
+                            onEvent(BookEvent.ZoomImage)
+                        }),
                         horizontalAlignment = Alignment.CenterHorizontally
                     )
                     {
-                        Image(
-                            painter = painterResource(id = R.drawable.book),
-                            contentDescription = "Photo of Book",
-                            modifier = Modifier
-                                .width(100.dp)
-                                .height(70.dp)
-                                .padding(0.dp)
-                                .clickable( onClick = {
-                                    onEvent(BookEvent.SetImage)
-                                }),
-                        )
+                        if(!state.image.isBlank()){
+                            SubcomposeAsyncImage(
+                                model = state.image,
+                                contentDescription = null,
+                                contentScale = ContentScale.FillHeight,
+                                modifier = Modifier
+                                    .width(90.dp)
+                                    .height(120.dp)
+                                    .padding(start = 10.dp,0.dp,10.dp,0.dp),
+                                error = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.book),
+                                        contentDescription = "Photo of Book",
+                                        modifier = Modifier
+                                            .width(100.dp)
+                                            .height(80.dp)
+                                            .padding(0.dp)
+                                    )
+                                }
+                            )
+                        }
+                        else{
+                            Image(
+                                painter = painterResource(id = R.drawable.book),
+                                contentDescription = "Photo of Book",
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .height(70.dp)
+                                    .padding(0.dp)
+                            )
+                        }
                     }
 
                 }
@@ -335,3 +424,145 @@ fun Title(state: BookState){
             .fillMaxWidth(),
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ImageDialog(state: BookState, onEvent: (BookEvent) -> Unit)
+{
+    if(state.image.isBlank())
+        return
+
+    AlertDialog(
+        onDismissRequest = { onEvent(BookEvent.EndZoomImage) },
+        containerColor = Transparent,
+        title = {},
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            )
+            {
+                //image of the book
+                if(!state.image.isBlank()){
+                    SubcomposeAsyncImage(
+                        model = state.image,
+                        contentDescription = null,
+                        contentScale = ContentScale.FillHeight,
+                        modifier = Modifier
+                            .width(300.dp)
+                            .height(500.dp)
+                            .padding(start = 0.dp,0.dp,0.dp,0.dp)
+                            .background(color = Darkbeige)
+                            .align(Alignment.CenterHorizontally),
+                        error = {
+                            Image(
+                                painter = painterResource(id = R.drawable.book),
+                                contentDescription = "Photo of Book",
+                                modifier = Modifier
+                                    .width(300.dp)
+                                    .height(500.dp)
+                            )
+                        }
+                    )
+                }
+                else{
+                    Image(
+                        painter = painterResource(id = R.drawable.book),
+                        contentDescription = "Photo of Book",
+                        modifier = Modifier
+                            .width(300.dp)
+                            .height(500.dp)
+                    )
+                }
+
+            }
+        },
+        confirmButton = {},
+        modifier = Modifier
+            .width(300.dp)
+            .height(500.dp)
+            .padding(0.dp)
+            .clickable(
+                onClick ={
+                    onEvent(BookEvent.EndZoomImage)
+                }
+            ),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChooseImageDialog(state: BookState, onEvent: (BookEvent) -> Unit)
+{
+    if(state.imageOption.isEmpty())
+        return
+
+    AlertDialog(
+        onDismissRequest = { onEvent(BookEvent.ImageSelected("")) },
+        containerColor = Transparent,
+        title = {},
+        text = {
+            LazyColumn(
+                Modifier.fadingEdge(Brush.verticalGradient(0.8f to Color.Black, 1f to Transparent)).background(Transparent)
+            )
+            {
+                items(state.imageOption){ imageUrl->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    )
+                    {
+                        //image of the book
+                        if(!imageUrl.isBlank()){
+                            SubcomposeAsyncImage(
+                                model = imageUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.FillHeight,
+                                modifier = Modifier
+                                    .width(200.dp)
+                                    .height(300.dp)
+                                    .align(Alignment.CenterHorizontally)
+                                    .clickable(
+                                        onClick = {
+                                            onEvent(BookEvent.ImageSelected(imageUrl))
+                                        }
+                                    ),
+                                error = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.book),
+                                        contentDescription = "Photo of Book",
+                                        modifier = Modifier
+                                            .width(200.dp)
+                                            .height(300.dp)
+                                    )
+                                }
+                            )
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+
+                item {
+                    Spacer(Modifier.height(50.dp))
+                }
+            }
+        },
+        confirmButton = {},
+        modifier = Modifier
+            .width(300.dp)
+            .height(450.dp)
+            .padding(0.dp)
+    )
+}
+
+fun Modifier.fadingEdge(brush: Brush) = this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+        drawRect(brush = brush, blendMode = BlendMode.DstIn)
+    }

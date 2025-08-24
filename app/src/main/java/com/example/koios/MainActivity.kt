@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.example.koios.ui.theme.KoiosTheme
 import androidx.core.net.toUri
-
 class MainActivity : ComponentActivity() {
     private val db by lazy{
         Room.databaseBuilder(
@@ -27,7 +26,7 @@ class MainActivity : ComponentActivity() {
         factoryProducer = {
             object : ViewModelProvider.Factory{
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return BookViewModel(db.dao, activity = null) as T
+                    return BookViewModel(db.dao, activity = null, downloader = null) as T
                 }
             }
         }
@@ -37,17 +36,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-//        ActivityCompat.requestPermissions(this,
-//            arrayOf(READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO,
-//                Manifest.permission.MANAGE_EXTERNAL_STORAGE),
-//            PackageManager.GET_PERMISSIONS
-//        )
+        val downloader = AndroidDownloader(this)
 
         setContent {
             KoiosTheme {
                 val state by viewModel.state.collectAsState()
 
                 viewModel.activity = this
+                viewModel.downloader = downloader
 
                 BookScreen(state =state ,onEvent= viewModel::onEvent)
             }

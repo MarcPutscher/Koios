@@ -11,8 +11,12 @@ data class BookState (
     val rating: Int = -1,
     val isAddingBook: Boolean = false,
     val sortType: SortType = SortType.CONDITION,
-    val isSearching: Boolean = false,
+    val isLoading: Boolean = false,
     val searchText:String = "",
     val isChangeBook: Boolean = false,
-    val isMenuExpand: Boolean = false
+    val isZooming: Boolean = false,
+    val isImageChoose : Boolean = false,
+    val imageOption : List<String> = emptyList<String>(),
+    val currentimage: String = "",
+    val imagePath: String = ""
 )
