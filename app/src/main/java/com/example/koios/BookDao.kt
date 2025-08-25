@@ -15,7 +15,7 @@ interface BookDao {
     @Delete
     suspend fun deleteBool(book: Book)
 
-    @Query("SELECT * FROM book ORDER BY condition ASC")
+    @Query("SELECT * FROM book ORDER BY condition DESC")
     fun getBooksOrderedByCondition(): Flow<List<Book>>
 
     @Query("SELECT * FROM book ORDER BY title ASC")
@@ -26,4 +26,7 @@ interface BookDao {
 
     @Query("SELECT * FROM book ORDER BY rating DESC")
     fun getBooksOrderedByRating(): Flow<List<Book>>
+
+    @Query("SELECT * FROM book ORDER BY id DESC")
+    fun getBooksOrderedById(): Flow<List<Book>>
 }
