@@ -16,6 +16,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -37,6 +40,7 @@ class BookViewModel (
     val searchText = _searchText.asStateFlow()
 
     private val _sortType = MutableStateFlow(SortType.CONDITION)
+    @OptIn(FlowPreview::class)
     private val _books = _sortType
         .flatMapLatest { sortType ->
             when(sortType){
@@ -57,6 +61,9 @@ class BookViewModel (
                 }
             }
         }
+        .onEach { _state.update { it.copy(isLoading = true) } }
+        .debounce { 500L }
+        .onEach { _state.update { it.copy(isLoading = false) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),emptyList())
 
     // Access point to the backend
@@ -139,7 +146,7 @@ class BookViewModel (
                     image = event.changebook.image,
                     urlLink = event.changebook.urllink,
                     id = event.changebook.id,
-                    currentimage = event.changebook.currentimage,
+                    currentImage = event.changebook.currentimage,
                     imagePath = event.changebook.imagePath
                 ) }
             }
@@ -190,9 +197,6 @@ class BookViewModel (
     fun setStateToDefault()
     {
         _state.update { it.copy(
-            isZooming = false,
-            isAddingBook = false,
-            isChangeBook = false,
             title = "",
             author = "",
             rating = -1,
@@ -200,10 +204,15 @@ class BookViewModel (
             image = "",
             urlLink = "",
             id = 0,
-            isImageChoose = false,
-            currentimage = "",
+
+            currentImage = "",
             imagePath = "",
-            imageOption = emptyList()
+            imageOption = emptyList(),
+
+            isImageChoose = false,
+            isZooming = false,
+            isAddingBook = false,
+            isChangeBook = false,
         ) }
     }
 
@@ -216,7 +225,7 @@ class BookViewModel (
         val condition = state.value.condition
         val image = state.value.image
         val urlLink = state.value.urlLink
-        val currentimgae = state.value.currentimage
+        val currentImage = state.value.currentImage
         val imagePath = state.value.imagePath
 
         var book = Book(
@@ -226,7 +235,7 @@ class BookViewModel (
             condition = condition,
             image = image,
             urllink = urlLink,
-            currentimage = currentimgae,
+            currentimage = currentImage,
             imagePath = imagePath
         )
 
@@ -240,7 +249,7 @@ class BookViewModel (
                 condition = condition,
                 image = image,
                 urllink = urlLink,
-                currentimage = currentimgae,
+                currentimage = currentImage,
                 imagePath = imagePath
             )
         }
@@ -272,6 +281,14 @@ class BookViewModel (
                 Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
                 return
             }
+            setStateToDefault()
+            return
+        }
+
+        //import a decoded file to the database
+        if(urlLink == "##import##")
+        {
+            importDatabase()
             setStateToDefault()
             return
         }
@@ -338,10 +355,7 @@ class BookViewModel (
     //export the current database to a external text file
     fun exportDatabase()
     {
-        _state.update { it.copy(
-            isLoading = true
-        ) }
-
+        _state.update { it.copy(isLoading = true) }
         // decode the database
         val lines = ArrayList<String>()
         val separate = "#"
@@ -375,35 +389,69 @@ class BookViewModel (
         file.createNewFile()
 
         Toast.makeText(activity, "Books are saved in Downloads/Koios as KoiosBookList.txt", Toast.LENGTH_LONG).show()
+        _state.update { it.copy(isLoading = false) }
+    }
 
-        _state.update { it.copy(
-            isLoading = false
-        ) }
+    //TODO Get ride of Permission denied
+    //import books to the current database from a external text file
+    fun importDatabase()
+    {
+        try {
+            // set the file
+            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"/Koios/KoiosBookList.txt")
+
+            if(!file.exists())
+            {
+                Toast.makeText(activity, "There is not file (KoiosBookList.txt) in Downloads/Koios", Toast.LENGTH_LONG).show()
+                return
+            }
+
+            val data = file.readLines()
+
+            viewModelScope.launch {
+                // encode the file
+                for(line in data){
+
+                    val content = line.split("#")
+                    val book = Book(
+                        id = content[0].toInt(),
+                        title = content[1],
+                        author = content[2],
+                        urllink = content[3],
+                        image = content[4],
+                        rating = content[5].toInt(),
+                        condition = content[6].toInt()
+                    )
+
+                    dao.upsetBook(book)
+                }
+            }
+        }
+        catch (e: Exception)
+        {
+            Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+        }
+
+
+        Toast.makeText(activity, "Books are successful imported", Toast.LENGTH_LONG).show()
     }
 
     //delete all books from the database
     fun deleteAll(){
-        _state.update { it.copy(
-            isLoading = true
-        ) }
+        _state.update { it.copy(isLoading = true) }
         onEvent(BookEvent.OnSearchTextChange(""))
         for(book in _books.value)
         {
             onEvent(BookEvent.DeleteBook(book))
         }
-        _state.update { it.copy(
-            isLoading = false
-        ) }
+        _state.update { it.copy(isLoading = false) }
     }
 
     //try to set the images from the books in the database
     fun getImageAll()
     {
+        _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-
-            _state.update { it.copy(
-                isLoading = true
-            ) }
 
             for(book in _books.value)
             {
@@ -426,10 +474,8 @@ class BookViewModel (
 
                 dao.upsetBook(book)
             }
-            _state.update { it.copy(
-                isLoading = false
-            ) }
         }
+        _state.update { it.copy(isLoading = false) }
     }
 
     //store the image on device

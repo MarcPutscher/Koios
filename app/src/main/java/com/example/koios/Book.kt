@@ -45,11 +45,14 @@ data class Book (
     fun markMatchingStat(query: String)
     {
         titleMatch = 0
-        if(title.contains(query,ignoreCase = true))
+        if(title.contains(query,ignoreCase = true) or query.contains(title.first(), ignoreCase = true) )
             titleMatch = 1
 
         authorMatch = 0
-        if(author.contains(query,ignoreCase = true))
+        if(author.isEmpty())
+            return
+
+        if(author.contains(query,ignoreCase = true)or query.contains(author.first(), ignoreCase = true))
             authorMatch = 1
 
     }

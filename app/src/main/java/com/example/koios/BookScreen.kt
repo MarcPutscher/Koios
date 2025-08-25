@@ -1,6 +1,5 @@
 package com.example.koios
 
-import android.graphics.Color
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -63,16 +62,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
-import com.example.koios.ui.theme.Beige
-import com.example.koios.ui.theme.DarkRed
-import com.example.koios.ui.theme.Darkbeige
-import com.example.koios.ui.theme.Darkblue
-import com.example.koios.ui.theme.Darkgrey
-import com.example.koios.ui.theme.Green
-import com.example.koios.ui.theme.LightBlue
-import com.example.koios.ui.theme.LightWithe
-import com.example.koios.ui.theme.MiddeBlue
-import com.example.koios.ui.theme.Purple
+import com.example.koios.ui.theme.TextColor2
+import com.example.koios.ui.theme.Card2BackgroundColor
+import com.example.koios.ui.theme.Card3BackgroundColor
+import com.example.koios.ui.theme.DarkBlue
+import com.example.koios.ui.theme.DarkGrey
+import com.example.koios.ui.theme.Card1BackgroundColor
+import com.example.koios.ui.theme.HighLightBackground
+import com.example.koios.ui.theme.TaskBarBackgroundColor
+import com.example.koios.ui.theme.TextFieldBackgroundColor
+import com.example.koios.ui.theme.HighLightText
+import com.example.koios.ui.theme.TextColor1
+import com.example.koios.ui.theme.makeColorDarker
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,6 +117,7 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
         modifier = Modifier.padding(0.dp)
 
     ){ padding->
+
         //show the dialog for adding or changing
         if(state.isAddingBook or state.isChangeBook){
             AddBookDialog(state = state, onEvent = onEvent)
@@ -127,47 +129,62 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
             ImageDialog(state = state, onEvent = onEvent)
         }
 
-        if(state.isLoading)
-        {
-            CircularProgressIndicator(
-            )
-        }
         //layout for the taskbar and the main list
-        Column (
+        Column(
             modifier = Modifier
-                .background(color = Darkblue)
+                .background(color = DarkBlue)
                 .fillMaxSize()
+                .padding(padding)
         )
         {
 
             //taskbar
-            Taskbar(state,onEvent)
+            Taskbar(state, onEvent)
 
-            //if the list is empty then show this image
-            if(state.books.isEmpty())
-                Image(
-                    painter = painterResource(R.drawable.outline_search_off_24),
-                    contentDescription = "Condition Filter" ,
-                    modifier = Modifier
-                        .size(300.dp)
-                        .fillMaxSize()
-                        .align(Alignment.CenterHorizontally)
-                        .padding(0.dp,50.dp,0.dp,0.dp)
-                    )
-
-
-            //main list where the books are displayed
-            LazyColumn(
-            state = listState,
-            )
+            if(state.isLoading)
             {
-                items(state.books){ book ->
-                    ItemTemplate(book,onEvent)
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                )
+                {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
+            }
+            else {
+                //if the list is empty then show this image
+                if (state.books.isEmpty())
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    )
+                    {
+                        Image(
+                            painter = painterResource(R.drawable.outline_search_off_24),
+                            contentDescription = "Condition Filter",
+                            modifier = Modifier
+                                .size(300.dp)
+                                .fillMaxSize()
+                                .align(Alignment.Center)
 
-                //make space to interact better with the last item
-                item {
-                    Spacer(Modifier.height(200.dp))
+                        )
+                    }
+
+
+                //main list where the books are displayed
+                LazyColumn(
+                    state = listState,
+                )
+                {
+                    items(state.books) { book ->
+                        ItemTemplate(book, onEvent)
+                    }
+
+                    //make space to interact better with the last item
+                    item {
+                        Spacer(Modifier.height(200.dp))
+                    }
                 }
             }
         }
@@ -195,7 +212,7 @@ fun convertRating(rating: Int = -1): String {
 
 //components
 @Composable
-fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Color){
+fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Color,textColor: androidx.compose.ui.graphics.Color = TextColor2){
     Row(
         modifier = Modifier
             .background(color =backgroundColor, RoundedCornerShape(7.dp)),
@@ -205,42 +222,53 @@ fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Col
     {
         Text(
             text = list.size.toString(),
-            color = Beige,
+            color = textColor,
             fontWeight = FontWeight.ExtraBold,
             modifier = Modifier
                 .background(color = backgroundColor, RoundedCornerShape(7.dp))
-                .padding(5.dp,2.dp)
+                .padding(5.dp, 2.dp)
         )
     }
 }
 @Composable
 fun FilterItem(icon: ImageVector, color: androidx.compose.ui.graphics.Color, description:String, onEvent:(BookEvent)->Unit,sortType: SortType){
-    Icon(
-        imageVector = icon,
-        contentDescription = description,
-        tint = color,
-        modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SortBooks(sortType)) }))
+    Box(
+        modifier = Modifier
+            .border(2.dp, color = makeColorDarker(color, 1.1), shape = RoundedCornerShape(10.dp))
+            .padding(2.dp)
+    )
+    {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = color,
+            modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SortBooks(sortType)) }))
+    }
+
 }
 @Composable
 fun BookStatTemplate(text:String,icon: ImageVector,description: String,searchMatch: Int = 0){
     var backgroundColor = Transparent
-    if (searchMatch == 1)
-        backgroundColor = Purple
+    var textColor = DarkGrey
+    if (searchMatch == 1) {
+        backgroundColor = HighLightBackground
+        textColor = HighLightText
+    }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = Darkgrey,
+            tint = DarkGrey,
             modifier = Modifier.size(30.dp)
         )
         Text(
             text = text,
             modifier = Modifier
-                .padding(5.dp,0.dp)
+                .padding(5.dp, 0.dp)
                 .background(color = backgroundColor, shape = RoundedCornerShape(5.dp))
                 .padding(2.dp),
-            color = Darkgrey,
+            color = textColor,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black
         )
@@ -250,33 +278,38 @@ fun BookStatTemplate(text:String,icon: ImageVector,description: String,searchMat
 fun MenuItem(icon: ImageVector, onEvent: Function0<Unit>){
     IconButton(
         onClick = onEvent,
-        modifier = Modifier.background(color = Darkgrey, shape = RoundedCornerShape(20.dp)),
+        modifier = Modifier.background(color = DarkGrey, shape = RoundedCornerShape(20.dp)),
     )
     {
         Icon(
             imageVector = icon,
             contentDescription = "MenuItem",
-            tint = Darkbeige)
+            tint = Card3BackgroundColor)
     }
 }
 @Composable
 fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
     Column(
         modifier = Modifier
-            .padding(10.dp, end = 10.dp,top=50.dp, bottom = 5.dp)
+            .padding(10.dp, end = 10.dp, top = 20.dp, bottom = 5.dp)
             .height(120.dp)
             .fillMaxSize()
             .background(
-                color = LightBlue,
-                shape = RoundedCornerShape(20))
-            .border(5.dp, color = MiddeBlue, shape = RoundedCornerShape(20))
+                color = TaskBarBackgroundColor,
+                shape = RoundedCornerShape(20)
+            )
+            .border(
+                5.dp,
+                color = makeColorDarker(TaskBarBackgroundColor, 0.6),
+                shape = RoundedCornerShape(20)
+            )
     )
     {
         //taskbar
         Box(
             modifier = Modifier
                 .background(color = Transparent)
-                .padding(15.dp,15.dp,15.dp,0.dp)
+                .padding(15.dp, 15.dp, 15.dp, 0.dp)
         )
         {
             //searchField
@@ -320,7 +353,7 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                     .height(55.dp)
                     .fillMaxWidth()
                     .padding(0.dp),
-                colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
                     unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
 
                 )
@@ -330,34 +363,39 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp,0.dp,20.dp,0.dp),
+                .padding(20.dp, 0.dp, 20.dp, 0.dp),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
-        ){
+        )
+        {
             //when the main list is not empty then show the stats for the main list
             if(!state.books.isEmpty())
             {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalAlignment = Alignment.CenterVertically
-                    ){
+                    )
+                {
                     //show the amount of books in the main list that satisfied condition == 0
                     val condition0 = state.books.filter { book -> book.condition == 0 }
                     if(!condition0.isEmpty())
-                        StatsItem(condition0,Darkbeige)
+                        StatsItem(condition0,Card3BackgroundColor)
 
                     //show the amount of books in the main list that satisfied condition == 1
                     val condition1 = state.books.filter { book -> book.condition == 1 }
                     if(!condition1.isEmpty())
-                        StatsItem(condition1,DarkRed)
+                        StatsItem(condition1, Card2BackgroundColor)
+
 
                     //show the amount of books in the main list that satisfied condition == 2
                     val condition2 = state.books.filter { book -> book.condition == 2 }
                     if(!condition2.isEmpty())
-                        StatsItem(condition2,Green)
+                        StatsItem(condition2, Card1BackgroundColor)
+
 
                     //show the total amount of books in the main list
-                    StatsItem(state.books,Darkblue)
+                    Text(text = "=", color = TextColor1)
+                    StatsItem(state.books,DarkBlue,  makeColorDarker(TextColor2,1.7))
                 }
             }
 
@@ -376,9 +414,9 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                     )
                     {
                         //set the color of icon
-                        var iconColor = androidx.compose.ui.graphics.Color(Color.DKGRAY)
+                        var iconColor = makeColorDarker(TextColor1,1.7)
                         if(state.sortType == sortType)
-                            iconColor = androidx.compose.ui.graphics.Color(Color.BLACK)
+                            iconColor = TextColor1
 
                         //items of the filter
                         if(sortType == SortType.TITLE)
@@ -403,12 +441,12 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     //set the background color depend to the condition of the book
-    var cardColor = Darkbeige
+    var cardColor = Card3BackgroundColor
     if(book.condition == 1){
-        cardColor = DarkRed
+        cardColor = Card2BackgroundColor
     }
     if(book.condition == 2) {
-        cardColor = Green
+        cardColor = Card1BackgroundColor
     }
 
     //the item card for the book
@@ -416,22 +454,22 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(12.dp)
-            .background(color = Darkblue),
+            .background(color = Transparent),
         shape = RoundedCornerShape(0.dp),
     )
     {
         Column(
             modifier = Modifier
-                .background(color = Darkblue),
+                .background(color = DarkBlue),
         )
         {
             //title
-            var backgroundColor = Transparent
-            var textColor = Darkbeige
+            var backgroundColorText = Transparent
+            var textColor = Card3BackgroundColor
             if (book.titleMatch == 1)
             {
-                backgroundColor = Purple
-                textColor = Darkgrey
+                backgroundColorText = HighLightBackground
+                textColor = HighLightText
             }
             Text(
                 text = book.title,
@@ -440,7 +478,7 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
                     .align(alignment = Alignment.Start)
                     .fillMaxWidth()
                     .padding(start = 10.dp, bottom = 5.dp)
-                    .background(color = backgroundColor, shape = RoundedCornerShape(5.dp))
+                    .background(color = backgroundColorText, shape = RoundedCornerShape(5.dp))
                     .padding(2.dp),
                 color = textColor,
                 fontSize = 20.sp,
@@ -450,10 +488,10 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
             //body
             Card(
                 shape = RoundedCornerShape(10,10,30,30),
-                border = BorderStroke(width = 4.dp,color = Beige),
+                border = BorderStroke(width = 4.dp,color = makeColorDarker(cardColor)),
                 modifier = Modifier
-                    .padding(5.dp,0.dp)
-                    .background(color = Darkblue)
+                    .padding(5.dp, 0.dp)
+                    .background(color = Transparent)
                     .clickable(
                         onClick = {
                             expanded = !expanded
@@ -478,7 +516,7 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
                             modifier = Modifier
                                 .width(70.dp)
                                 .height(80.dp)
-                                .padding(start = 20.dp,10.dp,10.dp,10.dp)
+                                .padding(start = 20.dp, 10.dp, 10.dp, 10.dp)
                                 .clickable(
                                     onClick = {
                                         onEvent(BookEvent.SetImage(book.imagePath))

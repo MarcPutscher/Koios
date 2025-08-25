@@ -9,14 +9,16 @@ data class BookState (
     val urlLink: String = "",
     val condition: Int = 0,
     val rating: Int = -1,
-    val isAddingBook: Boolean = false,
+    val currentImage: String = "",
+    val imagePath: String = "",
+
     val sortType: SortType = SortType.CONDITION,
-    val isLoading: Boolean = false,
     val searchText:String = "",
+    val imageOption : List<String> = emptyList<String>(),
+
+    val isAddingBook: Boolean = false,
+    val isLoading: Boolean = false,
     val isChangeBook: Boolean = false,
     val isZooming: Boolean = false,
     val isImageChoose : Boolean = false,
-    val imageOption : List<String> = emptyList<String>(),
-    val currentimage: String = "",
-    val imagePath: String = ""
 )

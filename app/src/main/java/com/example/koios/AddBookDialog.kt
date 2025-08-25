@@ -54,17 +54,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
-import com.example.koios.ui.theme.Darkbeige
-import com.example.koios.ui.theme.Darkgrey
-import com.example.koios.ui.theme.LightBlue
-import com.example.koios.ui.theme.LightWithe
+import com.example.koios.ui.theme.Card3BackgroundColor
+import com.example.koios.ui.theme.DarkGrey
+import com.example.koios.ui.theme.TaskBarBackgroundColor
+import com.example.koios.ui.theme.TextFieldBackgroundColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = { onEvent(BookEvent.HideDialog) },
-        containerColor = Darkgrey,
+        containerColor = DarkGrey,
         title = {Title(state)},
         text = {
 
@@ -91,7 +91,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     },
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                    colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
                         unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
@@ -130,7 +130,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     },
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                    colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
                         unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
@@ -169,7 +169,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     },
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                    colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
                         unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
@@ -229,7 +229,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                         },
                         shape = RoundedCornerShape(20.dp),
                         singleLine = true,
-                        colors = TextFieldDefaults.colors(unfocusedContainerColor = LightWithe, focusedContainerColor = LightWithe,
+                        colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
                             unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
@@ -265,7 +265,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                 Column (
                     modifier = Modifier
                         .background(
-                            color = LightBlue,
+                            color = TaskBarBackgroundColor,
                             shape = RoundedCornerShape(20))
                         .padding(5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -300,7 +300,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                         modifier = Modifier
                             .padding(0.dp,10.dp,0.dp,0.dp)
                             .background(
-                                color = LightBlue,
+                                color = TaskBarBackgroundColor,
                                 shape = RoundedCornerShape(20)),
                         horizontalAlignment = Alignment.Start
 
@@ -419,7 +419,7 @@ fun Title(state: BookState){
         text = title,
         fontWeight = FontWeight.Black,
         fontSize = 30.sp,
-        color = Darkbeige,
+        color = Card3BackgroundColor,
         modifier = Modifier
             .fillMaxWidth(),
     )
@@ -454,7 +454,7 @@ fun ImageDialog(state: BookState, onEvent: (BookEvent) -> Unit)
                             .width(300.dp)
                             .height(500.dp)
                             .padding(start = 0.dp,0.dp,0.dp,0.dp)
-                            .background(color = Darkbeige)
+                            .background(color = Card3BackgroundColor)
                             .align(Alignment.CenterHorizontally),
                         error = {
                             Image(
