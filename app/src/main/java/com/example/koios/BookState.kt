@@ -15,10 +15,13 @@ data class BookState (
     val sortType: SortType = SortType.CONDITION,
     val searchText:String = "",
     val imageOption : List<String> = emptyList<String>(),
+    val dialogType: DialogType = DialogType.ADD,
 
+    val showDialog: Boolean = false,
     val isAddingBook: Boolean = false,
     val isLoading: Boolean = false,
     val isChangeBook: Boolean = false,
     val isZooming: Boolean = false,
     val isImageChoose : Boolean = false,
+    val isMenuOpen: Boolean = false,
 )

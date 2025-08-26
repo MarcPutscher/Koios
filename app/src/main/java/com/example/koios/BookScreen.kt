@@ -29,12 +29,17 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,11 +59,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
@@ -68,10 +76,17 @@ import com.example.koios.ui.theme.Card3BackgroundColor
 import com.example.koios.ui.theme.DarkBlue
 import com.example.koios.ui.theme.DarkGrey
 import com.example.koios.ui.theme.Card1BackgroundColor
+import com.example.koios.ui.theme.DialogBackgroundColor
+import com.example.koios.ui.theme.DialogButtonBackgroundColor
+import com.example.koios.ui.theme.DialogButtonTextColor
+import com.example.koios.ui.theme.DialogTextColor
 import com.example.koios.ui.theme.HighLightBackground
 import com.example.koios.ui.theme.TaskBarBackgroundColor
 import com.example.koios.ui.theme.TextFieldBackgroundColor
 import com.example.koios.ui.theme.HighLightText
+import com.example.koios.ui.theme.MenuButtonBackgroundColor
+import com.example.koios.ui.theme.MenuButtonIconColor
+import com.example.koios.ui.theme.RobinEggBlue
 import com.example.koios.ui.theme.TextColor1
 import com.example.koios.ui.theme.makeColorDarker
 import kotlinx.coroutines.launch
@@ -88,40 +103,131 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
         floatingActionButton = {
             Column (
                 verticalArrangement = Arrangement.spacedBy(10.dp)
-            ){
+            )
+            {
                 //if the main list can scroll to the top then show this button
                 if(listState.canScrollBackward)
-                    FloatingActionButton(onClick = {
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(index = 0)}
-                    }
-                    ) {
+                    FloatingActionButton(
+                        onClick = {
+                            coroutineScope.launch {
+                            listState.animateScrollToItem(index = 0)} },
+                        modifier = Modifier
+                            .align(Alignment.End),
+                        containerColor = MenuButtonBackgroundColor
+                    )
+                    {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowUp,
                             contentDescription = "Add book",
-                            Modifier.size(30.dp))
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
                     }
 
-                //the button for adding a new book
-                FloatingActionButton(onClick = {
-                    onEvent(BookEvent.ShowDialog)
+                if(state.isMenuOpen)
+                {
+                    //the button for download the images from the books
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.IMAGE)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.outline_imagesmode_24),
+                            contentDescription = "Image books",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for exporting the database
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.EXPORT)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.outline_upload_file_24),
+                            contentDescription = "Export books",
+                            modifier = Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for importing the database
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.IMPORT)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.outline_sim_card_download_24),
+                            contentDescription = "Import books",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for insert books
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.INSERT)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.outline_library_add_24),
+                            contentDescription = "Add many books",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for delete all books
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.DELETE)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete books",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for adding a new book
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.ADD)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add book",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
                 }
+
+                //the button for the menu
+                FloatingActionButton(
+                    onClick = { onEvent(BookEvent.ToggleMenu) },
+                    containerColor = MenuButtonBackgroundColor
                 ) {
+                    var icon = Icons.Default.MoreVert
+                    if(state.isMenuOpen)
+                        icon = Icons.Default.KeyboardArrowUp
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = icon,
                         contentDescription = "Add book",
-                        Modifier.size(30.dp))
+                        Modifier.size(30.dp),
+                        tint = MenuButtonIconColor
+                    )
                 }
             }
         },
         modifier = Modifier.padding(0.dp)
-
-    ){ padding->
-
-        //show the dialog for adding or changing
-        if(state.isAddingBook or state.isChangeBook){
-            AddBookDialog(state = state, onEvent = onEvent)
-        }
+    )
+    { padding->
+        //show the dialog from the specific menu option
+        if(state.showDialog)
+            Dialog(state,onEvent)
 
         //zooming the image
         if(state.isZooming)
@@ -148,7 +254,8 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
                 )
                 {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
+                        color = RobinEggBlue
                     )
                 }
             }
@@ -212,7 +319,221 @@ fun convertRating(rating: Int = -1): String {
 
 //components
 @Composable
-fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Color,textColor: androidx.compose.ui.graphics.Color = TextColor2){
+fun Dialog(state: BookState,onEvent: (BookEvent) -> Unit){
+
+    if(state.dialogType == DialogType.ADD || state.dialogType == DialogType.CHANGE){
+        AddBookDialog(state, onEvent)
+    }
+
+    if(state.dialogType == DialogType.DELETE)
+    {
+        DefaultDialog(
+            "Bücher löschen",
+            "Möchten Sie wirklich alle Bücher löschen?",
+            { onEvent(BookEvent.HideDialog) },
+            { onEvent(BookEvent.DeleteBooks) },
+            height = 200.dp
+        )
+    }
+
+    if(state.dialogType == DialogType.INSERT)
+    {
+        AlertDialog(
+            onDismissRequest = { onEvent(BookEvent.HideDialog) },
+            containerColor = DialogBackgroundColor,
+            title = {
+                Text(
+                    text = "Bücher manuel hinzufügen",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 30.sp,
+                    color = Card3BackgroundColor,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                )
+            },
+            text = {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                )
+                {
+                    Text(
+                        text = "Die Bücher müssen decodiert Zeilenweise eingegeben werden.\n\n" +
+                                "Patter: id(int)#title(string)#author(string)#\nurlLink(string)#image(string)#rating(int)\n#condition(int)",
+                        color = DialogTextColor,
+                    )
+                    //text input
+                    TextField(
+                        value = state.title,
+                        onValueChange = {onEvent(BookEvent.SetTitle(it))},
+                        placeholder = {
+                            Text(text = "Input", color = Color.Gray,fontWeight = FontWeight.Bold)
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(unfocusedContainerColor = TextFieldBackgroundColor, focusedContainerColor = TextFieldBackgroundColor,
+                            unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                tint = Color.Gray,
+                                contentDescription = ""
+                            )
+                        },
+                        trailingIcon = {
+                            // if the searchText is not blank then show the clear button
+                            if(!state.title.isBlank())
+                                IconButton(
+                                    onClick = {
+                                        onEvent(BookEvent.SetTitle(""))
+                                    }
+                                )
+                                {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Clear,
+                                        tint = Color.Gray,
+                                        contentDescription = ""
+                                    )
+                                }
+                        },
+                    )
+                }
+            },
+            confirmButton = {
+                Row (
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                )
+                {
+                    //dismiss
+                    Button(
+                        onClick = { onEvent(BookEvent.HideDialog) } ,
+                        colors = ButtonColors(
+                            DialogButtonBackgroundColor,
+                            contentColor = DialogButtonBackgroundColor,
+                            disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                            disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                        )
+                    )
+                    {
+                        Text(text = "Abbrechen", color = DialogButtonTextColor)
+                    }
+
+                    //accept
+                    Button(onClick = { onEvent(BookEvent.InsertManyBooks(state.title)) } ,
+                        colors = ButtonColors(
+                            DialogButtonBackgroundColor,
+                            contentColor = DialogButtonBackgroundColor,
+                            disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                            disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                        ))
+                    {
+                        Text(text = "Hinzufügen", color = DialogButtonTextColor)
+                    }
+                }
+            },
+            modifier = Modifier
+                .width(320.dp)
+                .height(400.dp)
+        )
+    }
+
+    if(state.dialogType == DialogType.IMPORT)
+    {
+        DefaultDialog(
+            "Bücher importieren",
+            "Möchten Sie wirklich die Bücher aus der Datei KoiosBookList.txt im Ordner Documents/Koios importieren?",
+            { onEvent(BookEvent.HideDialog) },
+            { onEvent(BookEvent.ImportBooks) }
+        )
+    }
+
+    if(state.dialogType == DialogType.EXPORT)
+    {
+        DefaultDialog(
+            "Bücher exportieren",
+            "Möchten Sie wirklich die alle Bücher in Datei KoiosBookList.txt im Ordner Documents/Koios exportieren?",
+            { onEvent(BookEvent.HideDialog) },
+            { onEvent(BookEvent.ExportBooks) }
+        )
+    }
+
+    if(state.dialogType == DialogType.IMAGE)
+    {
+        DefaultDialog(
+            "Bilder downloaden",
+            "Möchten Sie wirklich für alle Bücher die Bilder in Documents/Koios/Images downloaden?",
+            { onEvent(BookEvent.HideDialog) },
+            { onEvent(BookEvent.ImageBooks) }
+        )
+    }
+}
+@Composable
+fun DefaultDialog(title:String,text:String,dismiss:Function0<Unit>,confirm:Function0<Unit>,height: Dp= 230.dp,accept:String = "Ja"){
+    AlertDialog(
+        onDismissRequest = dismiss ,
+        containerColor = DialogBackgroundColor,
+        title = {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Black,
+                fontSize = 30.sp,
+                color = DialogTextColor,
+                modifier = Modifier
+                    .fillMaxWidth(),
+            )
+        },
+        text = {
+            Text(
+                text = text,
+                color = DialogTextColor,
+                modifier = Modifier.fillMaxSize()
+            )
+        },
+        confirmButton = {
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            )
+            {
+
+                //dismiss
+                Button(
+                    onClick = dismiss ,
+                    colors = ButtonColors(
+                        DialogButtonBackgroundColor,
+                        contentColor = DialogButtonBackgroundColor,
+                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                    )
+                )
+                {
+                    Text(text = "Abbrechen", color = DialogButtonTextColor)
+                }
+
+                //accept
+                Button(onClick = confirm ,
+                    colors = ButtonColors(
+                        DialogButtonBackgroundColor,
+                        contentColor = DialogButtonBackgroundColor,
+                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                    ))
+                {
+                    Text(text = accept, color = DialogButtonTextColor)
+                }
+            }
+        },
+        modifier = Modifier
+            .width(320.dp)
+            .height(height)
+    )
+}
+@Composable
+fun StatsItem(list: List<Book>, backgroundColor: Color, textColor: Color = TextColor2){
     Row(
         modifier = Modifier
             .background(color =backgroundColor, RoundedCornerShape(7.dp)),
@@ -231,7 +552,7 @@ fun StatsItem(list: List<Book>, backgroundColor:androidx.compose.ui.graphics.Col
     }
 }
 @Composable
-fun FilterItem(icon: ImageVector, color: androidx.compose.ui.graphics.Color, description:String, onEvent:(BookEvent)->Unit,sortType: SortType){
+fun FilterItem(icon: ImageVector, color: Color, description:String, onEvent:(BookEvent)->Unit,sortType: SortType){
     Box(
         modifier = Modifier
             .border(2.dp, color = makeColorDarker(color, 1.1), shape = RoundedCornerShape(10.dp))
@@ -244,7 +565,6 @@ fun FilterItem(icon: ImageVector, color: androidx.compose.ui.graphics.Color, des
             tint = color,
             modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SortBooks(sortType)) }))
     }
-
 }
 @Composable
 fun BookStatTemplate(text:String,icon: ImageVector,description: String,searchMatch: Int = 0){
@@ -322,13 +642,13 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                 placeholder = {
                     Text(
                         text = "Buch suchen",
-                        color = androidx.compose.ui.graphics.Color.Gray,
+                        color = Color.Gray,
                         fontWeight = FontWeight.Bold)
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Search,
-                        tint = androidx.compose.ui.graphics.Color.Gray,
+                        tint = Color.Gray,
                         contentDescription = "Search icon"
                     )
                 },
@@ -343,7 +663,7 @@ fun Taskbar(state: BookState,onEvent: (BookEvent)-> Unit) {
                         {
                             Icon(
                                 imageVector = Icons.Rounded.Clear,
-                                tint = androidx.compose.ui.graphics.Color.Gray,
+                                tint = Color.Gray,
                                 contentDescription = "Search icon"
                             )
                         }

@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -25,6 +24,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BookViewModel (
@@ -102,7 +102,7 @@ class BookViewModel (
             }
             is BookEvent.SetURLLink -> {
                 _state.update { it.copy(
-                    urlLink = event.urllink
+                    urlLink = event.urlLink
                 ) }
             }
             is BookEvent.SetImage -> {
@@ -115,9 +115,46 @@ class BookViewModel (
                 setStateToDefault()
             }
             is BookEvent.ShowDialog -> {
-                _state.update { it.copy(
-                    isAddingBook = true
-                ) }
+                when(event.dialogType){
+                    DialogType.ADD -> {
+                        _state.update { it.copy(
+                            isAddingBook = true,
+                            showDialog = true,
+                            dialogType = DialogType.ADD
+                        ) }
+                    }
+                    DialogType.DELETE -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.DELETE
+                        ) }
+                    }
+                    DialogType.INSERT -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.INSERT
+                        ) }
+                    }
+                    DialogType.CHANGE -> {}
+                    DialogType.IMPORT -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.IMPORT
+                        ) }
+                    }
+                    DialogType.EXPORT -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.EXPORT
+                        ) }
+                    }
+                    DialogType.IMAGE -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.IMAGE
+                        ) }
+                    }
+                }
             }
             is BookEvent.SortBooks -> {
                 _sortType.value = event.sortType
@@ -136,18 +173,18 @@ class BookViewModel (
             }
             is BookEvent.ChangeBook ->{
                 _state.update { it.copy(
-                    isAddingBook = false,
                     isChangeBook = true,
-                    isZooming = false,
-                    title = event.changebook.title,
-                    author = event.changebook.author,
-                    rating = event.changebook.rating,
-                    condition = event.changebook.condition,
-                    image = event.changebook.image,
-                    urlLink = event.changebook.urllink,
-                    id = event.changebook.id,
-                    currentImage = event.changebook.currentimage,
-                    imagePath = event.changebook.imagePath
+                    showDialog = true,
+                    dialogType = DialogType.CHANGE,
+                    title = event.changeBook.title,
+                    author = event.changeBook.author,
+                    rating = event.changeBook.rating,
+                    condition = event.changeBook.condition,
+                    image = event.changeBook.image,
+                    urlLink = event.changeBook.urllink,
+                    id = event.changeBook.id,
+                    currentImage = event.changeBook.currentimage,
+                    imagePath = event.changeBook.imagePath
                 ) }
             }
             is BookEvent.OnSearchTextChange ->{
@@ -159,7 +196,7 @@ class BookViewModel (
             is BookEvent.LoadURL -> {
                 activity?.openUrl(event.url)
             }
-            is BookEvent.GenearteImage ->{
+            is BookEvent.GenerateImage ->{
                 if(state.value.title.isBlank())
                     return
 
@@ -190,6 +227,31 @@ class BookViewModel (
                 ) }
                 onEvent(BookEvent.SetImage(event.image))
             }
+            is BookEvent.ToggleMenu ->{
+                _state.update { it.copy(
+                    isMenuOpen = !_state.value.isMenuOpen
+                ) }
+            }
+            is BookEvent.DeleteBooks -> {
+                deleteAll()
+                setStateToDefault()
+            }
+            is BookEvent.InsertManyBooks -> {
+                insert(event.input)
+                setStateToDefault()
+            }
+            is BookEvent.ExportBooks -> {
+                exportDatabase()
+                setStateToDefault()
+            }
+            is BookEvent.ImportBooks -> {
+                importDatabase()
+                setStateToDefault()
+            }
+            is BookEvent.ImageBooks ->{
+                getImageAll()
+                setStateToDefault()
+            }
         }
     }
 
@@ -208,11 +270,14 @@ class BookViewModel (
             currentImage = "",
             imagePath = "",
             imageOption = emptyList(),
+            dialogType = DialogType.ADD,
 
             isImageChoose = false,
             isZooming = false,
             isAddingBook = false,
             isChangeBook = false,
+            isMenuOpen = false,
+            showDialog = false,
         ) }
     }
 
@@ -254,61 +319,6 @@ class BookViewModel (
             )
         }
 
-        //execute commands
-        //insert a decoded string to the database
-        if(urlLink == "##insert##")
-        {
-            try {
-                insert(title)
-            }
-            catch (e: Exception)
-            {
-                Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
-                return
-            }
-            setStateToDefault()
-            return
-        }
-
-        //export a decoded file from the database
-        if(urlLink == "##export##")
-        {
-            try {
-                exportDatabase()
-            }
-            catch (e: Exception)
-            {
-                Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
-                return
-            }
-            setStateToDefault()
-            return
-        }
-
-        //import a decoded file to the database
-        if(urlLink == "##import##")
-        {
-            importDatabase()
-            setStateToDefault()
-            return
-        }
-
-        //delete all books from the database
-        if(urlLink == "##delete##")
-        {
-            deleteAll()
-            setStateToDefault()
-            return
-        }
-
-        //try to set the images from the books in the database
-        if(urlLink == "##image##")
-        {
-            getImageAll()
-            setStateToDefault()
-            return
-        }
-
         if (title.isBlank())
             return
 
@@ -324,88 +334,100 @@ class BookViewModel (
     //save many books from a decoded string
     fun insert(input: String)
     {
-        if(!input.isBlank()) {
-            for(line in input.lines()){
-                try {
-                    val content = line.split("#")
+        try {
+            if(!input.isBlank()) {
+                for(line in input.lines()){
+                    try {
+                        val content = line.split("#")
 
-                    val book = Book(
-                        id = content[0].toInt(),
-                        title = content[1],
-                        author = content[2],
-                        urllink = content[3],
-                        image = content[4],
-                        rating = content[5].toInt(),
-                        condition = content[6].toInt()
-                    )
+                        val book = Book(
+                            id = content[0].toInt(),
+                            title = content[1],
+                            author = content[2],
+                            urllink = content[3],
+                            image = content[4],
+                            rating = content[5].toInt(),
+                            condition = content[6].toInt()
+                        )
 
-                    viewModelScope.launch {
-                        dao.upsetBook(book)
+                        viewModelScope.launch {
+                            dao.upsetBook(book)
+                        }
+                    }
+                    catch (e: Exception)
+                    {
+                        Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+                        continue
                     }
                 }
-                catch (e: Exception)
-                {
-                    Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
-                    continue
-                }
             }
+        }
+        catch (e: Exception)
+        {
+            Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
         }
     }
 
     //export the current database to a external text file
     fun exportDatabase()
     {
-        _state.update { it.copy(isLoading = true) }
-        // decode the database
-        val lines = ArrayList<String>()
-        val separate = "#"
-        onEvent(BookEvent.OnSearchTextChange(""))
-        for(book in _books.value){
+        try {
+            // decode the database
+            val lines = ArrayList<String>()
+            val separate = "#"
+            onEvent(BookEvent.OnSearchTextChange(""))
+            for(book in _books.value){
 
-            val line = book.id.toString()+separate+book.title+separate+book.author+separate+book.urllink+separate+book.image+separate+book.rating.toString()+separate+book.condition.toString()
-            lines += line
-        }
-
-        //set file directory
-        val filedir:String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/Koios"
-        if(!File(filedir).exists())
-            File(filedir).mkdir()
-
-        // set the file
-        val file = File(filedir,"KoiosBookList.txt")
-
-        //write the file
-        FileOutputStream(file).use { outputStream ->
-            lines.forEach {
-                outputStream.write("$it\n".encodeToByteArray())
+                val line = book.id.toString()+separate+book.title+separate+book.author+separate+book.urllink+separate+book.image+separate+book.rating.toString()+separate+book.condition.toString()
+                lines += line
             }
+
+            //set file directory and file
+            val fileDirName: String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path +"/Koios"
+            val fileName = "KoiosBookList.txt"
+
+            if(!File(fileDirName).exists())
+                File(fileDirName).mkdir()
+
+            if(File(fileDirName,fileName).exists())
+                File(fileDirName,fileName).delete()
+
+            val file = File(fileDirName,fileName)
+
+            //write the file
+            FileOutputStream(file).use { outputStream ->
+                lines.forEach {
+                    outputStream.write("$it\n".encodeToByteArray())
+                }
+            }
+
+            //create the file
+            file.createNewFile()
+
+            Toast.makeText(activity, "Books are saved in Documents/Koios as KoiosBookList.txt", Toast.LENGTH_LONG).show()
         }
-
-        //set the permission
-        file.setReadable(true)
-        file.setWritable(true)
-
-        //create the file
-        file.createNewFile()
-
-        Toast.makeText(activity, "Books are saved in Downloads/Koios as KoiosBookList.txt", Toast.LENGTH_LONG).show()
-        _state.update { it.copy(isLoading = false) }
+        catch (e: Exception)
+        {
+            Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+        }
     }
 
-    //TODO Get ride of Permission denied
     //import books to the current database from a external text file
     fun importDatabase()
     {
         try {
-            // set the file
-            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"/Koios/KoiosBookList.txt")
+            // set the file and directory
+            val fileDir: String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path +"/Koios"
+            val file = File(fileDir,"KoiosBookList.TXT")
+
 
             if(!file.exists())
             {
-                Toast.makeText(activity, "There is not file (KoiosBookList.txt) in Downloads/Koios", Toast.LENGTH_LONG).show()
+                Toast.makeText(activity, "There is not file (KoiosBookList.txt) in Documents/Koios", Toast.LENGTH_LONG).show()
                 return
             }
 
+            //val data = file.readLines()
             val data = file.readLines()
 
             viewModelScope.launch {
@@ -430,6 +452,7 @@ class BookViewModel (
         catch (e: Exception)
         {
             Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+            return
         }
 
 
@@ -489,7 +512,7 @@ class BookViewModel (
             if(!book.imagePath.isBlank() and File(book.imagePath).exists()){
                 File(book.imagePath).delete()
             }
-            val dirname = "Koios/Image/${book.title}${book.author}"
+            val dirname = "Koios/Images/${book.title}${book.author}"
             val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path + "/"+dirname
             downloader?.downloadFile(book.image,book.title,dirname)
             book.imagePath = dirpath+"/image.jpg"

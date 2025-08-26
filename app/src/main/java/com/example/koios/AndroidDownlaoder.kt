@@ -13,11 +13,11 @@ class AndroidDownloader(
 
     override fun downloadFile(url: String, name: String, dir:String): Long{
         //set file directory
-        val filedir:String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/Koios/Image"
+        val filedir:String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path +"/Koios/Images"
         if(!File(filedir).exists())
             File(filedir).mkdir()
 
-        val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path +"/"+dir
+        val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path +"/"+dir
         if(!File(dirpath).exists())
             File(dirpath).mkdir()
 
@@ -26,7 +26,7 @@ class AndroidDownloader(
             .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setTitle("$name.jpg")
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,dir+"/image.jpg")
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOCUMENTS,dir+"/image.jpg")
         return downloadManger.enqueue(request)
     }
 }

@@ -3,6 +3,7 @@ package com.example.koios
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,18 +26,14 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,26 +46,32 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import com.example.koios.ui.theme.Card3BackgroundColor
-import com.example.koios.ui.theme.DarkGrey
+import com.example.koios.ui.theme.DialogBackgroundColor
+import com.example.koios.ui.theme.DialogButtonBackgroundColor
+import com.example.koios.ui.theme.DialogButtonTextColor
+import com.example.koios.ui.theme.DialogTextColor
+import com.example.koios.ui.theme.LightGrey
 import com.example.koios.ui.theme.TaskBarBackgroundColor
 import com.example.koios.ui.theme.TextFieldBackgroundColor
+import com.example.koios.ui.theme.makeColorDarker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = { onEvent(BookEvent.HideDialog) },
-        containerColor = DarkGrey,
+        containerColor = DialogBackgroundColor,
         title = {Title(state)},
         text = {
-
             //zooming the image
             if(state.isZooming)
                 ImageDialog(state = state, onEvent = onEvent)
@@ -179,7 +183,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                             colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
                             modifier = Modifier.clickable(
                                 onClick = {
-                                    onEvent(BookEvent.GenearteImage)
+                                    onEvent(BookEvent.GenerateImage)
                                 }
                             )
                         )
@@ -203,23 +207,7 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                 )
 
                 //text input of urlLink and access point for commands
-                TooltipBox(
-                    modifier = modifier,
-                    positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
-                    tooltip = {
-                        RichTooltip(
-                            title = { Text(text = "internal commands") }
-                        ) {
-                            Text(text = "##delete## --> remove all books" +
-                                    "\n##insert## --> insert books in 'Titel' with the pattern 'id(int)#title(string)#author(string)#urlLink(string)#image#(string)rating(int)#condition(int)'\n" +
-                                    //"##import## --> import all books from the Downloads folder in the 'KoiosBookList.txt' file with decode pattern 'id#title#author#urlLink#image#rating(int)#condition(int)'\n" +
-                                    "##export## --> export all books to the file 'KoiosBookList.txt' in the folder Downloads with the same pattern as import\n" +
-                                    "##image## -->try to set the images fro every book in the database")
-                        }
-                    },
-                    state = rememberTooltipState()
-                ) {
-                    TextField(
+                TextField(
                         value = state.urlLink,
                         onValueChange = {
                             onEvent(BookEvent.SetURLLink(it))
@@ -256,8 +244,6 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                                 }
                         },
                     )
-                }
-
 
                 Spacer(Modifier.height(5.dp))
 
@@ -271,9 +257,12 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                     horizontalAlignment = Alignment.CenterHorizontally
                 )
                 {
+                    var rating = state.rating.toString()
+                    if(state.rating == -1)
+                        rating = "Keine"
                     //title
                     Text(
-                        text = "Bewertung: "+ state.rating.toString(),
+                        text = "Bewertung: $rating",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -316,34 +305,36 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                                 .padding(top = 5.dp)
                         )
 
+
                         //content
-                        LazyColumn(
+                        LazyRow(
                             modifier = Modifier
-                                .padding(vertical = 5.dp, horizontal = 15.dp)
+                                .padding(vertical = 5.dp, horizontal = 15.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         )
                         {
                             items(items=listOf(0,1,2)){ conditionType ->
-                                Row (
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Start
+
+                                var color = makeColorDarker(LightGrey,0.4)
+                                if(state.condition == conditionType)
+                                    color = DialogButtonBackgroundColor
+
+                                Box(
+                                    modifier = Modifier
+                                        .border(2.dp, color = makeColorDarker(color, 1.1), shape = RoundedCornerShape(10.dp))
+                                        .padding(5.dp)
                                 )
                                 {
-                                    RadioButton(
-                                        selected = state.condition == conditionType,
-                                        onClick = {
-                                            onEvent(BookEvent.SetCondition(conditionType))
-                                        }
-                                    )
-
-                                    //set text of the item
-                                    var text = "Noch kaufen"
-                                    if(conditionType == 1){
-                                        text = "Im Besitz"
-                                    }
-                                    if(conditionType == 2){
-                                        text = "Schon gelesen"
-                                    }
-                                    Text(text = text)
+                                    var icon = ImageVector.vectorResource(R.drawable.outline_shopping_cart_24)
+                                    if(conditionType == 1)
+                                        icon = ImageVector.vectorResource(R.drawable.outline_shelves_24)
+                                    if(conditionType == 2)
+                                        icon = ImageVector.vectorResource(R.drawable.outline_menu_book_24)
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = "",
+                                        tint = color,
+                                        modifier = Modifier.clickable(onClick = { onEvent(BookEvent.SetCondition(conditionType)) }))
                                 }
                             }
                         }
@@ -396,17 +387,40 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
             }
         },
         confirmButton = {
-            Box(
+            Row (
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Button(onClick = {
-                    onEvent(BookEvent.SaveBook)
-                }) {
-                    Text(text = "Speichern")
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            )
+            {
+                //dismiss
+                Button(
+                    onClick = { onEvent(BookEvent.HideDialog) } ,
+                    colors = ButtonColors(
+                        DialogButtonBackgroundColor,
+                        contentColor = DialogButtonBackgroundColor,
+                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                    )
+                )
+                {
+                    Text(text = "Abbrechen", color = DialogButtonTextColor)
+                }
+
+                //accept
+                Button(onClick = { onEvent(BookEvent.SaveBook) } ,
+                    colors = ButtonColors(
+                        DialogButtonBackgroundColor,
+                        contentColor = DialogButtonBackgroundColor,
+                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                    ))
+                {
+                    Text(text = "Hinzufügen", color = DialogButtonTextColor)
                 }
             }
         },
+        modifier = Modifier.fillMaxWidth()
     )
 }
 @Composable
@@ -419,7 +433,7 @@ fun Title(state: BookState){
         text = title,
         fontWeight = FontWeight.Black,
         fontSize = 30.sp,
-        color = Card3BackgroundColor,
+        color = DialogTextColor,
         modifier = Modifier
             .fillMaxWidth(),
     )

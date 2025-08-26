@@ -11,9 +11,6 @@ fun makeColorDarker(color: Color, darknessFactor: Double = 0.8): Color {
     val blue = (android.graphics.Color.blue(color.toArgb()) * darknessFactor).toInt()
     return Color(android.graphics.Color.argb(alpha, red, green, blue))
 }
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
 
 val Eucalyptus = Color(android.graphics.Color.rgb(114, 132, 106))
 val Charcoal = Color(android.graphics.Color.rgb(0, 71, 96))
@@ -27,12 +24,19 @@ val LightGrey = Color(android.graphics.Color.rgb(199, 204, 211))
 val RobinEggBlue = Color(android.graphics.Color.rgb(174, 225, 217))
 val DarkGreen = Color(android.graphics.Color.rgb(0, 67, 61))
 
-
 val TextColor1 = DarkGrey
 val TextColor2 = Charcoal
 
 val TaskBarBackgroundColor = Teal
 val TextFieldBackgroundColor = LightGrey
+
+val MenuButtonBackgroundColor = LightGrey
+val MenuButtonIconColor = DarkBlue
+
+val DialogBackgroundColor = DarkGrey
+val DialogTextColor = Eucalyptus
+val DialogButtonBackgroundColor = DarkBlue
+val DialogButtonTextColor = RobinEggBlue
 
 val Card1BackgroundColor = CadetBlue
 val Card2BackgroundColor = Glaucous
