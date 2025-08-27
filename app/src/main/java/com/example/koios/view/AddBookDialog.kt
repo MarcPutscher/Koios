@@ -224,17 +224,25 @@ fun AddBookDialog(state: BookState, onEvent: (BookEvent) -> Unit, modifier: Modi
                             unfocusedIndicatorColor = Transparent, focusedIndicatorColor = Transparent),
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.ShoppingCart,
-                                tint = Color.Gray,
-                                contentDescription = ""
+                            IconButton(
+                                onClick = {
+                                    onEvent(BookEvent.SetURLLink("##search##"))
+                                }
                             )
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.ShoppingCart,
+                                    tint = Color.Gray,
+                                    contentDescription = ""
+                                )
+                            }
                         },
                         trailingIcon = {
                             // if the searchText is not blank then show the clear button
                             if(!state.urlLink.isBlank())
                                 IconButton(
                                     onClick = {
+                                        //reset the URLLink
                                         onEvent(BookEvent.SetURLLink(""))
                                     }
                                 )

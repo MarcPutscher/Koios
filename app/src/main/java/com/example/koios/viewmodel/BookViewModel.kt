@@ -15,6 +15,7 @@ import com.example.koios.types.SortType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -111,9 +112,12 @@ class BookViewModel (
                 ) }
             }
             is BookEvent.SetURLLink -> {
-                _state.update { it.copy(
-                    urlLink = event.urlLink
-                ) }
+                if(event.urlLink == "##search##")
+                    getURLLink()
+                else
+                    _state.update { it.copy(
+                        urlLink = event.urlLink
+                    ) }
             }
             is BookEvent.SetImage -> {
                 _state.update { it.copy(
@@ -272,6 +276,7 @@ class BookViewModel (
             }
         }
     }
+
 
     //set the state values to default
     fun setStateToDefault()
@@ -500,9 +505,6 @@ class BookViewModel (
                 if(book.image == "null")
                     book.image = ""
 
-                if(book.title.isBlank())
-                    continue
-
                 if(book.image.isBlank())
                 {
                     val imageUrls = getImage(book.title, book.author)
@@ -582,6 +584,13 @@ class BookViewModel (
         return imageUrls
     }
 
+    //get a Amazon url from the internet with the title and the author as buzzwords
+    fun getURLLink(){
+        val result = findAmazonURL(state.value.title,state.value.author)
+
+        _state.update { it.copy(urlLink = result) }
+    }
+
     // serialize the body of the internet page
     @Serializable
     data class OpenLibrarySearchResponse(
@@ -653,8 +662,7 @@ class BookViewModel (
             Dispatchers.IO
         )
         {
-            var url =
-                "https://openlibrary.org/search.json?title=${title.encodeUrl()}&author=${author.encodeUrl()}&limit=10"
+            var url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&author=${author.encodeUrl()}&limit=10"
             if (author.isBlank())
                 url = "https://openlibrary.org/search.json?title=${title.encodeUrl()}&limit=10"
             val request = Request.Builder()
@@ -720,8 +728,7 @@ class BookViewModel (
         {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
             val encodedAuthor = URLEncoder.encode(author, "UTF-8")
-            val url =
-                "https://www.googleapis.com/books/v1/volumes?q=intitle:$encodedTitle+inauthor:$encodedAuthor&maxResults=5"
+            val url = "https://www.googleapis.com/books/v1/volumes?q=intitle:$encodedTitle+inauthor:$encodedAuthor&maxResults=5"
 
             val request = Request.Builder()
                 .url(url)
@@ -750,4 +757,15 @@ class BookViewModel (
                 return@withContext result
             }
         }
+
+    fun findAmazonURL(title: String,author: String): String
+    {
+        val encodedTitle = URLEncoder.encode(title, "UTF-8")
+        val encodedAuthor = URLEncoder.encode(author, "UTF-8")
+        var url = "https://www.amazon.de/s?k=$encodedTitle,$encodedAuthor"
+        if(author.isBlank())
+            url = "https://www.amazon.de/s?k=$encodedTitle"
+
+        return url
+    }
 }
