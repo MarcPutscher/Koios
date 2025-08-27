@@ -42,7 +42,8 @@ class BookViewModel (
     //Traceback to the MainActivity
     var activity: MainActivity?,
     var downloader: Downloader?
-): ViewModel(){
+): ViewModel()
+{
 
     //Variable for the booklist
     private val _searchText = MutableStateFlow("")
@@ -499,16 +500,19 @@ class BookViewModel (
                 if(book.image == "null")
                     book.image = ""
 
-                if(!book.image.isBlank() or book.title.isBlank())
+                if(book.title.isBlank())
                     continue
 
-                val imageUrls = getImage(book.title, book.author)
+                if(book.image.isBlank())
+                {
+                    val imageUrls = getImage(book.title, book.author)
 
-                if(!imageUrls.isEmpty())
-                    book.image = imageUrls.first{url-> !url.isBlank()}
+                    if(!imageUrls.isEmpty())
+                        book.image = imageUrls.first{url-> !url.isBlank()}
 
-                if(book.image == "null")
-                    book.image = ""
+                    if(book.image == "null")
+                        book.image = ""
+                }
 
                 storeImage(book)
 
