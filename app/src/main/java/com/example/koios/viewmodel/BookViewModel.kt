@@ -499,16 +499,13 @@ class BookViewModel (
                 if(book.image == "null")
                     book.image = ""
 
-                if(book.title.isBlank())
+                if(!book.image.isBlank() or book.title.isBlank())
                     continue
 
-                if(book.image.isBlank())
-                {
-                    val imageUrls = getImage(book.title, book.author)
+                val imageUrls = getImage(book.title, book.author)
 
-                    if(!imageUrls.isEmpty())
-                        book.image = imageUrls.first{url-> !url.isBlank()}
-                }
+                if(!imageUrls.isEmpty())
+                    book.image = imageUrls.first{url-> !url.isBlank()}
 
                 if(book.image == "null")
                     book.image = ""
