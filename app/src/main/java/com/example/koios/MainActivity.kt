@@ -13,6 +13,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.example.koios.ui.theme.KoiosTheme
 import androidx.core.net.toUri
+import com.example.koios.service.AndroidDownloader
+import com.example.koios.service.BookDatabase
+import com.example.koios.view.BookScreen
+import com.example.koios.viewmodel.BookViewModel
+
 class MainActivity : ComponentActivity() {
     private val db by lazy{
         Room.databaseBuilder(
@@ -45,7 +50,7 @@ class MainActivity : ComponentActivity() {
                 viewModel.activity = this
                 viewModel.downloader = downloader
 
-                BookScreen(state =state ,onEvent= viewModel::onEvent)
+                BookScreen(state = state, onEvent = viewModel::onEvent)
             }
         }
     }
