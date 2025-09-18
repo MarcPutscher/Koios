@@ -8,4 +8,5 @@ enum class DialogType {
     IMPORT,
     EXPORT,
     IMAGE,
+    METADATA
 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -475,68 +476,103 @@ fun Dialog(state: BookState, onEvent: (BookEvent) -> Unit){
             { onEvent(BookEvent.ImageBooks) }
         )
     }
+
+    if(state.dialogType == DialogType.METADATA)
+    {
+        DefaultDialog(
+            "Metadaten",
+            "Titel = ${state.title}\n" +
+                    "Author = ${state.author}\n" +
+                    "Bewertung = ${convertRating(state.rating)}\n" +
+                    "Status = ${convertCondition(state.condition)}\n" +
+                    "ImageURL = ${state.image}\n" +
+                    "URL-Link = ${state.urlLink}\n\n" +
+                    "ID = ${state.id}\n" +
+                    "Current Image = ${state.currentImage}\n" +
+                    "Image Path = ${state.imagePath}\n",
+            dismiss = { onEvent(BookEvent.HideDialog) },
+            confirm =null,
+            height = 550.dp
+        )
+    }
 }
 @Composable
-fun DefaultDialog(title:String,text:String,dismiss:Function0<Unit>,confirm:Function0<Unit>,height: Dp= 230.dp,accept:String = "Ja"){
-    AlertDialog(
-        onDismissRequest = dismiss ,
-        containerColor = DialogBackgroundColor,
-        title = {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Black,
-                fontSize = 30.sp,
-                color = DialogTextColor,
-                modifier = Modifier
-                    .fillMaxWidth(),
-            )
-        },
-        text = {
-            Text(
-                text = text,
-                color = DialogTextColor,
-                modifier = Modifier.fillMaxSize()
-            )
-        },
-        confirmButton = {
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            )
-            {
-
-                //dismiss
-                Button(
-                    onClick = dismiss ,
-                    colors = ButtonColors(
-                        DialogButtonBackgroundColor,
-                        contentColor = DialogButtonBackgroundColor,
-                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
-                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
-                    )
+fun DefaultDialog(title: String, text: String, dismiss: (() -> Unit), confirm: (() -> Unit)?, height: Dp = 230.dp, accept: String = "Ja"){
+        AlertDialog(
+            onDismissRequest = dismiss ,
+            containerColor = DialogBackgroundColor,
+            title = {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 30.sp,
+                    color = DialogTextColor,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                )
+            },
+            text = {
+                Text(
+                    text = text,
+                    color = DialogTextColor,
+                    modifier = Modifier.fillMaxSize().verticalScroll(state = rememberScrollState())
+                )
+            },
+            confirmButton = {
+                Row (
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
                 )
                 {
-                    Text(text = "Abbrechen", color = DialogButtonTextColor)
-                }
+                    if (confirm != null)
+                    {
+                        //dismiss
+                        Button(
+                            onClick = dismiss ,
+                            colors = ButtonColors(
+                                DialogButtonBackgroundColor,
+                                contentColor = DialogButtonBackgroundColor,
+                                disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                                disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                            )
+                        )
+                        {
+                            Text(text = "Abbrechen", color = DialogButtonTextColor)
+                        }
 
-                //accept
-                Button(onClick = confirm ,
-                    colors = ButtonColors(
-                        DialogButtonBackgroundColor,
-                        contentColor = DialogButtonBackgroundColor,
-                        disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
-                        disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
-                    ))
-                {
-                    Text(text = accept, color = DialogButtonTextColor)
+                        //accept
+                        Button(onClick = confirm ,
+                            colors = ButtonColors(
+                                DialogButtonBackgroundColor,
+                                contentColor = DialogButtonBackgroundColor,
+                                disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                                disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                            ))
+                        {
+                            Text(text = accept, color = DialogButtonTextColor)
+                        }
+                    }
+                    else
+                        //dismiss
+                        Button(
+                            onClick = dismiss ,
+                            colors = ButtonColors(
+                                DialogButtonBackgroundColor,
+                                contentColor = DialogButtonBackgroundColor,
+                                disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                                disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                            )
+                        )
+                        {
+                            Text(text = "Schließen", color = DialogButtonTextColor)
+                        }
                 }
-            }
-        },
-        modifier = Modifier
-            .width(320.dp)
-            .height(height)
-    )
+            },
+            modifier = Modifier
+                .width(320.dp)
+                .height(height)
+        )
 }
 @Composable
 fun StatsItem(list: List<Book>, backgroundColor: Color, textColor: Color = TextColor2){
@@ -936,6 +972,9 @@ fun ItemTemplate(book: Book, onEvent: (BookEvent) -> Unit) {
 
                         //delete the book
                         MenuItem(Icons.Default.Delete,{onEvent(BookEvent.DeleteBook(book))})
+
+                        //metadata of the book
+                        MenuItem(Icons.Default.Info,{onEvent(BookEvent.ShowMetadata(book))})
                     }
                 }
         }

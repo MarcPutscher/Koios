@@ -168,6 +168,12 @@ class BookViewModel (
                             dialogType = DialogType.IMAGE
                         ) }
                     }
+                    DialogType.METADATA -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.METADATA
+                        ) }
+                    }
                 }
             }
             is BookEvent.SortBooks -> {
@@ -274,6 +280,20 @@ class BookViewModel (
                 getImageAll()
                 setStateToDefault()
             }
+            is BookEvent.ShowMetadata ->{
+                _state.update { it.copy(
+                    title = event.currentBook.title,
+                    author = event.currentBook.author,
+                    rating = event.currentBook.rating,
+                    condition = event.currentBook.condition,
+                    image = event.currentBook.image,
+                    urlLink = event.currentBook.urllink,
+                    id = event.currentBook.id,
+                    currentImage = event.currentBook.currentimage,
+                    imagePath = event.currentBook.imagePath
+                ) }
+                onEvent(BookEvent.ShowDialog(DialogType.METADATA))
+            }
         }
     }
 
@@ -370,7 +390,7 @@ class BookViewModel (
                             urllink = content[3],
                             image = content[4],
                             rating = content[5].toInt(),
-                            condition = content[6].toInt()
+                            condition = content[6].toInt(),
                         )
 
                         viewModelScope.launch {
@@ -468,6 +488,8 @@ class BookViewModel (
                         condition = content[6].toInt()
                     )
 
+                    storeImage(book)
+
                     dao.upsetBook(book)
                 }
             }
@@ -530,16 +552,25 @@ class BookViewModel (
         if(book.image == book.currentimage)
             return
 
+        val dirname = "Koios/Images/${book.title}${book.author}"
+        val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path + "/"+dirname
+        val imagepath = "$dirpath/image.jpg"
+
+        if(File(imagepath).exists() and book.imagePath.isBlank())
+        {
+            book.imagePath = imagepath
+            book.currentimage = book.image
+            return
+        }
+
         if(!book.image.isBlank())
         {
             if(!book.imagePath.isBlank() and File(book.imagePath).exists()){
                 File(book.imagePath).delete()
             }
-            val dirname = "Koios/Images/${book.title}${book.author}"
-            val dirpath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).path + "/"+dirname
+
             downloader?.downloadFile(book.image,book.title,dirname)
-            book.imagePath = "$dirpath/image.jpg"
-            book.currentimage = book.image
+            book.imagePath = imagepath
         }
         book.currentimage = book.image
     }

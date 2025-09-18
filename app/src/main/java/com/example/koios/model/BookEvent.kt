@@ -28,4 +28,6 @@ sealed interface BookEvent {
     data class LoadURL(val url: String): BookEvent
     data class ImageSelected(val image: String): BookEvent
     data class InsertManyBooks(val input: String): BookEvent
+
+    data class ShowMetadata(val currentBook: Book): BookEvent
 }
