@@ -11,11 +11,11 @@ import com.example.koios.model.BookState
 import com.example.koios.types.DialogType
 import com.example.koios.model.Downloader
 import com.example.koios.MainActivity
+import com.example.koios.service.PDFManager
 import com.example.koios.types.SortType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -124,6 +124,11 @@ class BookViewModel (
                     image = event.image
                 ) }
             }
+            is BookEvent.SetBookListFilter ->{
+                _state.update { it.copy(
+                    booksFilter = event.bookFilter
+                ) }
+            }
 
             is BookEvent.HideDialog -> {
                 setStateToDefault()
@@ -172,6 +177,12 @@ class BookViewModel (
                         _state.update { it.copy(
                             showDialog = true,
                             dialogType = DialogType.METADATA
+                        ) }
+                    }
+                    DialogType.PDF -> {
+                        _state.update { it.copy(
+                            showDialog = true,
+                            dialogType = DialogType.PDF
                         ) }
                     }
                 }
@@ -294,6 +305,10 @@ class BookViewModel (
                 ) }
                 onEvent(BookEvent.ShowDialog(DialogType.METADATA))
             }
+            is BookEvent.PDFBooks ->{
+                createPDF(event.bookFilter)
+                setStateToDefault()
+            }
         }
     }
 
@@ -314,6 +329,7 @@ class BookViewModel (
             imagePath = "",
             imageOption = emptyList(),
             dialogType = DialogType.ADD,
+            booksFilter = "ttt",
 
             isImageChoose = false,
             isZooming = false,
@@ -515,6 +531,34 @@ class BookViewModel (
         _state.update { it.copy(isLoading = false) }
     }
 
+    //create a PDF from the selected books and saved it
+    fun createPDF(bookFilter: String = "ttt")
+    {
+        if(bookFilter == "fff")
+            return
+
+        _state.update { it.copy(isLoading = true) }
+        onEvent(BookEvent.OnSearchTextChange(""))
+        try {
+            val filteredBooks = arrayListOf<Book>()
+
+            if(bookFilter[0].toString() == "t")
+                filteredBooks += _books.value.filter { it -> it.condition == 0 }.toList()
+            if(bookFilter[1].toString() == "t")
+                filteredBooks += _books.value.filter { it -> it.condition == 1 }.toList()
+            if(bookFilter[2].toString() == "t")
+                filteredBooks += _books.value.filter { it -> it.condition == 2 }.toList()
+
+            PDFManager().ceatePDF(filteredBooks)
+
+            Toast.makeText(activity, "Books are saved in Documents/Koios as BookList.pdf", Toast.LENGTH_LONG).show()
+        }
+        catch (e: Exception)
+        {
+            Toast.makeText(activity, "Somthing got wrong", Toast.LENGTH_LONG).show()
+        }
+        _state.update { it.copy(isLoading = false) }
+    }
     //try to set the images from the books in the database
     fun getImageAll()
     {

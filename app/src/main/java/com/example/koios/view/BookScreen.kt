@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
@@ -91,6 +93,7 @@ import com.example.koios.ui.theme.HighLightBackground
 import com.example.koios.ui.theme.TaskBarBackgroundColor
 import com.example.koios.ui.theme.TextFieldBackgroundColor
 import com.example.koios.ui.theme.HighLightText
+import com.example.koios.ui.theme.LightGrey
 import com.example.koios.ui.theme.MenuButtonBackgroundColor
 import com.example.koios.ui.theme.MenuButtonIconColor
 import com.example.koios.ui.theme.RobinEggBlue
@@ -141,6 +144,19 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.outline_imagesmode_24),
                             contentDescription = "Image books",
+                            Modifier.size(30.dp),
+                            tint = MenuButtonIconColor
+                        )
+                    }
+
+                    //the button for create a pdf from the books
+                    FloatingActionButton(
+                        onClick = { onEvent(BookEvent.ShowDialog(DialogType.PDF)) },
+                        containerColor = MenuButtonBackgroundColor
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.outline_picture_as_pdf_24),
+                            contentDescription = "create a PDF from the books",
                             Modifier.size(30.dp),
                             tint = MenuButtonIconColor
                         )
@@ -216,10 +232,11 @@ fun BookScreen(state: BookState, onEvent: (BookEvent) -> Unit){
                 FloatingActionButton(
                     onClick = { onEvent(BookEvent.ToggleMenu) },
                     containerColor = MenuButtonBackgroundColor
-                ) {
+                )
+                {
                     var icon = Icons.Default.MoreVert
                     if(state.isMenuOpen)
-                        icon = Icons.Default.KeyboardArrowUp
+                        icon = Icons.Default.KeyboardArrowDown
                     Icon(
                         imageVector = icon,
                         contentDescription = "Add book",
@@ -495,6 +512,146 @@ fun Dialog(state: BookState, onEvent: (BookEvent) -> Unit){
             height = 550.dp
         )
     }
+
+    if(state.dialogType == DialogType.PDF)
+    {
+        AlertDialog(
+            onDismissRequest = { onEvent(BookEvent.HideDialog) },
+            containerColor = DialogBackgroundColor,
+            title = {
+                Text(
+                    text = "Bücherliste als PDf",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 30.sp,
+                    color = Card3BackgroundColor,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                )
+            },
+            text = {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                )
+                {
+                    //text for the dialog
+                    Text(
+                        text = "Möchten Sie wirklich eine PDF von den Büchern in der Datei KoiosBookList.pdf im Ordner Documents/Koios erstellen?",
+                        color = DialogTextColor,
+                    )
+
+                    //picker input of filter
+                    Column(
+                        modifier = Modifier
+                            .padding(50.dp, 10.dp, 50.dp, 0.dp)
+                            .background(
+                                color = DialogButtonBackgroundColor,
+                                shape = RoundedCornerShape(20)
+                            )
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    )
+                    {
+                        //title
+                        Text(
+                            text = "Filter",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = DialogTextColor,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 5.dp)
+                        )
+
+                        //content
+                        LazyRow(
+                            modifier = Modifier
+                                .padding(vertical = 0.dp, horizontal = 15.dp)
+                                .height(100.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        )
+                        {
+                            items(items=listOf(0,1,2)){ filterIndex ->
+
+                                var color = makeColorDarker(LightGrey,0.4)
+                                if(state.booksFilter[filterIndex].toString()  == "t")
+                                    color = DialogButtonTextColor
+
+                                Box(
+                                    modifier = Modifier
+                                        .border(
+                                            2.dp,
+                                            color = makeColorDarker(color, 1.1),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        .padding(5.dp)
+                                )
+                                {
+                                    var icon = ImageVector.vectorResource(R.drawable.outline_shopping_cart_24)
+                                    if(filterIndex == 1)
+                                        icon = ImageVector.vectorResource(R.drawable.outline_shelves_24)
+                                    if(filterIndex == 2)
+                                        icon = ImageVector.vectorResource(R.drawable.outline_menu_book_24)
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = "",
+                                        tint = color,
+                                        modifier = Modifier.clickable(onClick =
+                                            {
+                                                var newFilter = "ttt"
+                                                if(state.booksFilter[filterIndex].toString() == "t")
+                                                    newFilter = state.booksFilter.substring(0, filterIndex) + "f" + state.booksFilter.substring(filterIndex + 1)
+                                                else
+                                                    newFilter = state.booksFilter.substring(0, filterIndex) + "t" + state.booksFilter.substring(filterIndex + 1)
+                                                onEvent(BookEvent.SetBookListFilter(newFilter))
+                                            }
+                                        ))
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row (
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                )
+                {
+                    //dismiss
+                    Button(
+                        onClick = { onEvent(BookEvent.HideDialog) } ,
+                        colors = ButtonColors(
+                            DialogButtonBackgroundColor,
+                            contentColor = DialogButtonBackgroundColor,
+                            disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                            disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                        )
+                    )
+                    {
+                        Text(text = "Abbrechen", color = DialogButtonTextColor)
+                    }
+
+                    //accept
+                    Button(onClick = { onEvent(BookEvent.PDFBooks(state.booksFilter)) } ,
+                        colors = ButtonColors(
+                            DialogButtonBackgroundColor,
+                            contentColor = DialogButtonBackgroundColor,
+                            disabledContainerColor = makeColorDarker(DialogButtonBackgroundColor,1.9),
+                            disabledContentColor = makeColorDarker(DialogButtonBackgroundColor,1.9)
+                        ))
+                    {
+                        Text(text = "Erstellen", color = DialogButtonTextColor)
+                    }
+                }
+            },
+            modifier = Modifier
+                .width(320.dp)
+                .height(330.dp)
+        )
+    }
 }
 @Composable
 fun DefaultDialog(title: String, text: String, dismiss: (() -> Unit), confirm: (() -> Unit)?, height: Dp = 230.dp, accept: String = "Ja"){
@@ -515,7 +672,9 @@ fun DefaultDialog(title: String, text: String, dismiss: (() -> Unit), confirm: (
                 Text(
                     text = text,
                     color = DialogTextColor,
-                    modifier = Modifier.fillMaxSize().verticalScroll(state = rememberScrollState())
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(state = rememberScrollState())
                 )
             },
             confirmButton = {

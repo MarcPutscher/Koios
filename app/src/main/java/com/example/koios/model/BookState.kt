@@ -19,6 +19,7 @@ data class BookState (
     val searchText:String = "",
     val imageOption : List<String> = emptyList<String>(),
     val dialogType: DialogType = DialogType.ADD,
+    var booksFilter: String = "ttt",// 2 = already read | 1 = owned | 0 = not owned
 
     val showDialog: Boolean = false,
     val isAddingBook: Boolean = false,
